@@ -71,9 +71,6 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
 
             var orderedRadioPlaylist = EnsureRadioPlaylistItemsOrder(radioPlaylist);
 
-            // check items cache that can be found in Spotify
-            // check items cache that can not be found in Spotify
-
             var radioPlaylistAsSpotifyTrackId = await ConvertToSpotifyTrackIds(orderedRadioPlaylist);
             
             await PopulateSpotifyPlaylist(spotifyPlaylistId, radioPlaylistAsSpotifyTrackId).ConfigureAwait(false);
@@ -87,7 +84,7 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
 
         private async Task UpdatePlaylistDescription(string playlistId, int radioPlaylistLenght, int availableSpotifyTrackCount)
         {
-            string updatedDescription = options.DailyDescription + $" Dopasowano {availableSpotifyTrackCount}/{radioPlaylistLenght} utworów.";
+            string updatedDescription = options.DailyDescription + $" Dopasowano {availableSpotifyTrackCount}/{radioPlaylistLenght} utwory.";
             await spotifyClient.SetPlaylistDescription(playlistId, updatedDescription);
         }
 

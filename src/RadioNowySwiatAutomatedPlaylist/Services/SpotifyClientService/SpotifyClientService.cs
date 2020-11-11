@@ -284,7 +284,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
 
         public async Task SetPlaylistDescription(string playlistId, string description)
         {
-            logger.LogInformation($"Set details to Spotify playlistId: '{playlistId}'");
+            logger.LogInformation($"Set Spotify playlistId: '{playlistId}' details");
 
             var client = new RestClient(options.WebApi);
             client.Authenticator = new JwtAuthenticator(token.access_token);
@@ -299,11 +299,11 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             var request = await client.ExecuteAsync(putRequest).ConfigureAwait(false);
             if (request.StatusCode != HttpStatusCode.OK)
             {
-                logger.LogError($"Set details to Spotify playlistId: '{playlistId}' request end with code: {request.StatusCode} Reason: {request.Content}");
+                logger.LogError($"Set Spotify playlistId: '{playlistId}' details request end with code: {request.StatusCode} Reason: {request.Content}");
                 return;
             }
 
-            logger.LogInformation($"Set details to Spotify playlistId: '{playlistId}' completed");
+            logger.LogInformation($"Set Spotify playlistId: '{playlistId}' details completed");
         }
 
 
@@ -434,7 +434,6 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
 
         private void InsertToPlaylist(string playlistId, IEnumerable<string> trackIds)
         {
-            logger.LogInformation($"Insert to playlistId: '{playlistId}' {trackIds.Count()} items");
             var batches = trackIds.Batch(100);
 
             int index = -1;
@@ -461,6 +460,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
                     return;
                 }
             }
+            logger.LogInformation($"Inserted to playlistId: '{playlistId}' {trackIds.Count()} items");
         }
         public void Dispose()
         {
