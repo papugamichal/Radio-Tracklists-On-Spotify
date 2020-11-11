@@ -164,7 +164,7 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
             string playlistId;
             if (dailyPlaylist is null)
             {
-                playlistId = await spotifyClient.CreateCurrentUserPlaylist(dailyPlaylistName, options.DailyDescription).ConfigureAwait(false);
+                playlistId = await spotifyClient.CreateCurrentUserPlaylist(dailyPlaylistName, options.IsPublic, options.DailyDescription).ConfigureAwait(false);
                 await spotifyClient.SetPlaylistCoverImage(playlistId, options.DailyCoverImagePath);
             }
             else

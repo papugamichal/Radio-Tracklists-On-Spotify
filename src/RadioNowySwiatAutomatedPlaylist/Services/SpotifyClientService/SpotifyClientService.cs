@@ -176,7 +176,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             return request.Data.ID;
         }
 
-        public async Task<IEnumerable<PlaylistDto>> RequestForUserPlaylists(bool publicOnly = false)
+        public async Task<IEnumerable<PlaylistDto>> RequestForUserPlaylists()
         {
             var client = new RestClient(options.WebApi);
             client.Authenticator = new JwtAuthenticator(token.access_token);
@@ -192,7 +192,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
                 logger.LogError($"Request to '{request.ResponseUri}' end with code: {request.StatusCode} Reason: {request.Content}");
                 return Array.Empty<PlaylistDto>();
             }
-            return request.Data.items.Where(e => e.@public == publicOnly).Select(e => e);
+            return request.Data.items.Select(e => e);
         }
 
         public async Task<string> RequestForPlaylistsId(string playlistName)
@@ -215,7 +215,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             return request.Data.items.FirstOrDefault(e => e.name.Equals(playlistName, StringComparison.OrdinalIgnoreCase)).id;
         }
 
-        public async Task<string> CreateCurrentUserPlaylist(string name, string description = null)
+        public async Task<string> CreateCurrentUserPlaylist(string name, bool @public = false, string description = null)
         {
             var userID = await RequestForUserId();
             if (userID is null)
@@ -223,10 +223,10 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
                 return null;
             }
 
-            return await CreatePlaylist(userID, name, description);
+            return await CreatePlaylist(userID, name, @public, description);
         }
 
-        public async Task<string> CreatePlaylist(string userId, string name, string description = null)
+        public async Task<string> CreatePlaylist(string userId, string name, bool @public = false, string description = null)
         {
             logger.LogTrace($"Crate new Spotify playlist: '{name}'");
 
@@ -239,7 +239,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             {
                 name = name,
                 description = description ?? string.Empty,
-                @public = false
+                @public = @public
             });
 
             var request = await client.ExecuteAsync<PlaylistDto>(postRequest).ConfigureAwait(false);
