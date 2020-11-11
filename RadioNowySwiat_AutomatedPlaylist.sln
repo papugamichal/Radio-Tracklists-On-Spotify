@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30611.23
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrabHTMLContnetFromWeb", "src\GrabHTMLContnetFromWeb\GrabHTMLContnetFromWeb.csproj", "{2BB1FA5B-16B9-43E3-8A12-0660AB7F76D9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RadioNowySwiatAutomatedPlaylist", "src\RadioNowySwiatAutomatedPlaylist\RadioNowySwiatAutomatedPlaylist.csproj", "{69C956BD-6350-495C-9A2A-04C167E7EBB7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2BB1FA5B-16B9-43E3-8A12-0660AB7F76D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BB1FA5B-16B9-43E3-8A12-0660AB7F76D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BB1FA5B-16B9-43E3-8A12-0660AB7F76D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BB1FA5B-16B9-43E3-8A12-0660AB7F76D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69C956BD-6350-495C-9A2A-04C167E7EBB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69C956BD-6350-495C-9A2A-04C167E7EBB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69C956BD-6350-495C-9A2A-04C167E7EBB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69C956BD-6350-495C-9A2A-04C167E7EBB7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4C867C5E-2C46-4901-94F1-5C4833CDD5FA}
+	EndGlobalSection
+EndGlobal
