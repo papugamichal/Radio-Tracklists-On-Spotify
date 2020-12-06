@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -9,7 +11,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
-using RadioNowySwiatPlaylistBot.Services;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Security;
 using RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService;
 using RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService.Configuration;
 using RadioNowySwiatPlaylistBot.Services.DataSourceService;
@@ -38,20 +41,27 @@ namespace RadioNowySwiatPlaylistBot
             services.AddControllers().AddNewtonsoftJson();
 
             services
+                .AddDataProtection().Services
                 .Configure<DataSourceOptions>(config =>
                     this.Configuration.GetSection(DataSourceOptions.SectionName).Bind(config))
                 .Configure<SpotifyClientOptions>(config =>
                     this.Configuration.GetSection(SpotifyClientOptions.SectionName).Bind(config))
+                .Configure<SpotifyAuthorizationServiceOptions>(config =>
+                    this.Configuration.GetSection(SpotifyAuthorizationServiceOptions.SectionName).Bind(config))
                 .Configure<DailyPlaylistServiceOptions>(config =>
                     this.Configuration.GetSection(DailyPlaylistServiceOptions.SectionName).Bind(config))
+                .Configure<KeepAliveServiceOptions>(config =>
+                    this.Configuration.GetSection(KeepAliveServiceOptions.SectionName).Bind(config))
                 .Configure<PlaylistManagerOptions>(config =>
                     this.Configuration.GetSection(PlaylistManagerOptions.SectionName).Bind(config))
                 .AddScoped<IDataSourceService, DataSourceService>()
                 .AddScoped<IPlaylistManager, PlaylistManager>()
                 .AddSingleton<ISpotifyClientService, SpotifyClientService>()
+                .AddSingleton<ISpotifyAuthorizationService, SpotifyAuthorizationService>()
                 .AddSingleton<FoundInSpotifyCache>()
                 .AddSingleton<NotFoundInSpotifyCache>()
-                .AddHostedService<DailyPlaylistHostedService>();
+                .AddHostedService<DailyPlaylistHostedService>()
+                .AddHostedService<KeepAliveHostedService>()
                 ;
         }
 
@@ -68,12 +78,39 @@ namespace RadioNowySwiatPlaylistBot
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGet("/", async context =>
+                endpoints.MapGet(ApiPaths.Root, async context =>
                 {
-                    await context.Response.WriteAsync("Service is working!");
+                    var spotifyClient = context.RequestServices.GetRequiredService<ISpotifyClientService>();
+
+                    var uptime = DateTime.Now - Process.GetCurrentProcess().StartTime;
+                    var isAuth = spotifyClient.IsAuthenticated();
+
+                    await context.Response.WriteAsync($"Service is working!\n" +
+                        $"User is: {(isAuth ? "Authenticated!" : "Not authenticated!")}\n" +
+                        $"Uptime: {uptime.Days} days {uptime.Hours} hours {uptime.Minutes} minutes {uptime.Seconds} seconds");
                 });
 
-                endpoints.MapGet("/auth", async context =>
+                endpoints.MapGet(ApiPaths.Endpoints, async context =>
+                {
+                    var endpoints = typeof(ApiPaths).GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+                    var result = JsonConvert.SerializeObject(endpoints.Select(e => (string)e.GetRawConstantValue()).ToList(), new JsonSerializerSettings() { Formatting = Formatting.Indented });
+                    await context.Response.WriteAsync(result);
+                });
+
+                endpoints.MapGet(ApiPaths.IsAuthenticated, async context =>
+                {
+                    var client = context.RequestServices.GetRequiredService<ISpotifyClientService>();
+
+                    if (client.IsAuthenticated())
+                    {
+                        await context.Response.WriteAsync("Authenticated!");
+                        return;
+                    }
+
+                    await context.Response.WriteAsync("Not authenticated!");
+                });
+
+                endpoints.MapGet(ApiPaths.Auth, async context =>
                 {
                     var client = context.RequestServices.GetRequiredService<ISpotifyClientService>();
 
@@ -83,11 +120,11 @@ namespace RadioNowySwiatPlaylistBot
                         return;
                     }
                         
-                    context.Response.Redirect(client.GetAuthorizationCodeUrl().ToString(), permanent: false);
+                    context.Response.Redirect(client.GetAuthorizationUri().ToString(), permanent: false);
                     
                 });
 
-                endpoints.MapGet("/callback", async context =>
+                endpoints.MapGet(ApiPaths.Callback, async context =>
                 {
                     var client = context.RequestServices.GetRequiredService<ISpotifyClientService>();
 
@@ -113,26 +150,12 @@ namespace RadioNowySwiatPlaylistBot
                         return;
                     }
 
-                    await client.SetAuthorizationCode(code);
-                    await client.SetupAccessToken();
+                    await client.SetupAccessToken(code);
 
-                    context.Response.Redirect("/isAuthenticated", permanent: true);
+                    context.Response.Redirect(ApiPaths.IsAuthenticated, permanent: true);
                 });
 
-                endpoints.MapGet("/isAuthenticated", async context =>
-                {
-                    var client = context.RequestServices.GetRequiredService<ISpotifyClientService>();
-
-                    if (client.IsAuthenticated())
-                    {
-                        await context.Response.WriteAsync("Authenticated!");
-                        return;
-                    }
-
-                    await context.Response.WriteAsync("Not authenticated!");
-                });
-
-                endpoints.MapGet("/playlist/", async context =>
+                endpoints.MapGet(ApiPaths.Playlist, async context =>
                 {
                     string dateFromQuery = context.Request.Query["date"];
                     string startDateFromQuery = context.Request.Query["startdate"];
@@ -174,7 +197,7 @@ namespace RadioNowySwiatPlaylistBot
                     await context.Response.WriteAsync(result);
                 });
 
-                endpoints.MapGet("/userid", async context =>
+                endpoints.MapGet(ApiPaths.UserId, async context =>
                 {
                     var spotifyClient = context.RequestServices.GetRequiredService<ISpotifyClientService>();
                     if (!spotifyClient.IsAuthenticated())
@@ -187,7 +210,7 @@ namespace RadioNowySwiatPlaylistBot
                     await context.Response.WriteAsync(result);
                 });
 
-                endpoints.MapGet("/userplaylists", async context =>
+                endpoints.MapGet(ApiPaths.UserPlaylists, async context =>
                 {
                     var spotifyClient = context.RequestServices.GetRequiredService<ISpotifyClientService>();
                     if (!spotifyClient.IsAuthenticated())
@@ -203,7 +226,7 @@ namespace RadioNowySwiatPlaylistBot
                     await context.Response.WriteAsync(result);
                 });
 
-                endpoints.MapGet("/createplaylist", async context =>
+                endpoints.MapGet(ApiPaths.CreatePlaylist, async context =>
                 {
                     string name = context.Request.Query["name"];
                     if (string.IsNullOrEmpty(name))
@@ -227,4 +250,18 @@ namespace RadioNowySwiatPlaylistBot
             });
         }
     }
+
+    public static class ApiPaths
+    {
+        public const string Root = "/";
+        public const string Endpoints = "/api";
+        public const string Auth = "/auth";
+        public const string IsAuthenticated = "/isAuthenticated";
+        public const string Callback = "/callback";
+        public const string UserPlaylists = "/userplaylists";
+        public const string UserId = "/userid";
+        public const string Playlist = "/playlist/";
+        public const string CreatePlaylist = "/createplaylist";
+    }
 }
+

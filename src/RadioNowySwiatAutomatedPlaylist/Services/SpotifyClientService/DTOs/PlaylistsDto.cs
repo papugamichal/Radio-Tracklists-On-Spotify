@@ -55,5 +55,6 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs
         public Tracks tracks { get; set; }
         public string type { get; set; }
         public string uri { get; set; }
+        public string description { get; set; }
     }
 }

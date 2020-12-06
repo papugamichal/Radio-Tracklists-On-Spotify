@@ -52,8 +52,12 @@ namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
             {
                 using var scope = serviceScopeFactory.CreateScope();
                 var manager = scope.ServiceProvider.GetService<IPlaylistManager>();
-                manager.PopulateSpotifyDailylist().ConfigureAwait(false).GetAwaiter().GetResult();
 
+                /* Version 1 */
+                //manager.PopulateSpotifyDailylist().ConfigureAwait(false).GetAwaiter().GetResult();
+
+                /* Version 2 */
+                manager.PopulateTodayAndHandlePreviousPlaylists().ConfigureAwait(false).GetAwaiter().GetResult(); 
             }
             catch (Exception e)
             {

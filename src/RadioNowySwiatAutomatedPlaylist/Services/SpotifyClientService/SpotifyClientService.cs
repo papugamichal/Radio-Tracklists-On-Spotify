@@ -1,164 +1,70 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using MoreLinq;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Configuration;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs.PlaylistTrack2;
-using RestSharp;
-using RestSharp.Authenticators;
-using RestSharp.Serialization;
-using System;
-using System.Buffers.Text;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
-using System.Security.Policy;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using MoreLinq;
+using RestSharp;
+using RestSharp.Authenticators;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Strategies;
+using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction;
+using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Configuration;
+using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs;
+using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs.PlaylistTrack2;
 
 namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
 {
-    public class SpotifyClientService : ISpotifyClientService, IDisposable
+    public class SpotifyClientService : ISpotifyClientService
     {
         private readonly ILogger<SpotifyClientService> logger;
         private readonly IOptions<SpotifyClientOptions> iOptions;
+        private readonly ISpotifyAuthorizationService authorizationService;
         private SpotifyClientOptions options => iOptions.Value;
 
         private const string contentType = "content-type";
-        private const string grantType = "grant_type";
-        private const string codeHeader = "code";
-        private const string redirectUri = "redirect_uri";
-        private const string scope = "scope";
-        private const string refreshToken = "refresh_token";
-        private const string scopesToRequest = "playlist-modify-private playlist-read-private playlist-modify-public ugc-image-upload";
 
-        private Timer refreshTokenTimer;
-        private readonly TimeSpan defaultTimerInterval = TimeSpan.FromMinutes(1);
-
-        private static string authorizationCode;
-        private static readonly AccessTokenDto token = new AccessTokenDto();
+        private readonly IReadOnlyList<ITrackFinderStrategy> trackSearchStrategies;
 
         public SpotifyClientService(
             ILogger<SpotifyClientService> logger,
-            IOptions<SpotifyClientOptions> options
+            IOptions<SpotifyClientOptions> options,
+            ISpotifyAuthorizationService authorizationService
             )
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.iOptions = options ?? throw new ArgumentNullException(nameof(options));
-
-            this.refreshTokenTimer = new Timer(RefreshToken, null, TimeSpan.Zero, defaultTimerInterval);
+            this.authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
+            this.trackSearchStrategies = new List<ITrackFinderStrategy>()
+            {
+                new FullArtistFullTitleStrategy(),
+                new FullArtistTitleWithoutApostropheStrategy(),
+                new FullArtistsFirstFiveTitleCharactersStrategy(),
+                new ArtistsWithoutCommaFullTitleStrategy(),
+            };
         }
 
         /* Authorization */
-        public Uri GetAuthorizationCodeUrl()
+        public Uri GetAuthorizationUri()
         {
-            return new Uri(new Uri(options.AccountWebApi),
-                relativeUri: options.AuthorizationEndpoint +
-                "?client_id=" + options.ClientId +
-                "&response_type=code" +
-                "&redirect_uri=" + options.RedirectUrl +
-                "&scope=" + HttpUtility.HtmlEncode(scopesToRequest) +
-                "&show_dialog=" + options.ShowLoginDialog);
-        }
-
-        public async Task SetupAccessToken()
-        {
-            var client = new RestClient(options.AccountWebApi);
-            client.Authenticator = new HttpBasicAuthenticator(options.ClientId, options.ClientSecret);
-
-            var postRequest = new RestRequest(options.TokenEndpoint, Method.POST);
-            postRequest.AddHeader(contentType, "application/x-www-form-urlencoded");
-            postRequest.AddParameter(grantType, "authorization_code");
-            postRequest.AddParameter(codeHeader, authorizationCode);
-            postRequest.AddParameter(redirectUri, options.RedirectUrl);
-
-            var request = await client.ExecuteAsync<AccessTokenDto>(postRequest).ConfigureAwait(false);
-
-            if (request.Data is null)
-            {
-                return;
-            }
-            
-            if (request.StatusCode != System.Net.HttpStatusCode.OK)
-            {
-                logger.LogError($"Access token request end with code: {request.StatusCode} Reason: {request.Content}");
-                return;
-            }
-
-            token.Set(request.Data);
-            var interval = TimeSpan.FromSeconds(request.Data.expires_in - 10);
-            refreshTokenTimer?.Change(interval, interval);
-            logger.LogInformation($"Access token has been setup. Token lifetime: {token.expires_in}s ({token.expires_in_datetime.ToLocalTime()})");
-        }
-
-        private void RefreshToken(object state)
-        {
-            if (!IsRefreshToken())
-            {
-                return;
-            }
-
-            logger.LogInformation("Access token is about to expire.");
-
-            var client = new RestClient(options.AccountWebApi);
-            client.Authenticator = new HttpBasicAuthenticator(options.ClientId, options.ClientSecret);
-
-            var postRequest = new RestRequest(options.TokenEndpoint, Method.POST);
-            postRequest.AddHeader(contentType, "application/x-www-form-urlencoded");
-            postRequest.AddParameter(grantType, "refresh_token");
-            postRequest.AddParameter(refreshToken, token.refresh_token);
-
-            var request = client.ExecuteAsync<AccessTokenDto>(postRequest).ConfigureAwait(false).GetAwaiter().GetResult();
-
-            if (request.Data is null)
-            {
-                return;
-            }
-
-            if (request.StatusCode != System.Net.HttpStatusCode.OK)
-            {
-                logger.LogError($"Refresh access token request end with code: {request.StatusCode} Reason: {request.Content}");
-                return;
-            }
-
-            token.Update(request.Data);
-            var interval = TimeSpan.FromSeconds(request.Data.expires_in - 10);
-            refreshTokenTimer?.Change(interval, interval);
-
-            logger.LogInformation($"Access token has been refreshed. Token lifetime: {token.expires_in}s ({token.expires_in_datetime.ToLocalTime()})");
+            return this.authorizationService.GetAuthorizationCodeUri();
         }
 
         public bool IsAuthenticated()
         {
-            return true
-                && !string.IsNullOrEmpty(authorizationCode)
-                && !string.IsNullOrEmpty(token.access_token)
-                && token?.expires_in_datetime >= DateTime.UtcNow;
-        }
-
-        public Task SetAuthorizationCode(string code)
-        {
-            authorizationCode = code;
-            return Task.CompletedTask;
-        }
-
-        private bool IsRefreshToken()
-        {
-            return !string.IsNullOrEmpty(token.refresh_token);
+            return this.authorizationService.IsAuthenticated();
         }
 
         /* API */
         public async Task<string> RequestForUserId()
         {
             var client = new RestClient(options.WebApi);
-            client.Authenticator = new JwtAuthenticator(token.access_token);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
 
             var postRequest = new RestRequest("/v1/me", Method.GET);
 
@@ -179,9 +85,30 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
         public async Task<IEnumerable<PlaylistDto>> RequestForUserPlaylists()
         {
             var client = new RestClient(options.WebApi);
-            client.Authenticator = new JwtAuthenticator(token.access_token);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
 
             var postRequest = new RestRequest($"/v1/me/playlists", Method.GET);
+            var request = await client.ExecuteAsync<PlaylistsDto>(postRequest).ConfigureAwait(false);
+            if (request.Data is null)
+            {
+                return Array.Empty<PlaylistDto>();
+            }
+            if (request.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                logger.LogError($"Request to '{request.ResponseUri}' end with code: {request.StatusCode} Reason: {request.Content}");
+                return Array.Empty<PlaylistDto>();
+            }
+            return request.Data.items.Select(e => e);
+        }
+
+        public async Task<IEnumerable<PlaylistDto>> RequestPlaylistTracks(string playlistId)
+        {
+            var client = new RestClient(options.WebApi);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
+
+            var postRequest = new RestRequest($"/v1/playlists/{playlistId}/tracks", Method.GET);
             var request = await client.ExecuteAsync<PlaylistsDto>(postRequest).ConfigureAwait(false);
             if (request.Data is null)
             {
@@ -198,7 +125,8 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
         public async Task<string> RequestForPlaylistsId(string playlistName)
         {
             var client = new RestClient(options.WebApi);
-            client.Authenticator = new JwtAuthenticator(token.access_token);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
 
             var postRequest = new RestRequest($"/v1/me/playlists", Method.GET);
             var request = await client.ExecuteAsync<PlaylistsDto>(postRequest).ConfigureAwait(false);
@@ -231,7 +159,8 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             logger.LogTrace($"Crate new Spotify playlist: '{name}'");
 
             var client = new RestClient(options.WebApi);
-            client.Authenticator = new JwtAuthenticator(token.access_token);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
 
             var postRequest = new RestRequest($"/v1/users/{userId}/playlists", Method.POST);
             postRequest.AddHeader(contentType, "application/json");
@@ -263,7 +192,8 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             logger.LogInformation($"Set cover image to Spotify playlistId: '{playlistId}'");
 
             var client = new RestClient(options.WebApi);
-            client.Authenticator = new JwtAuthenticator(token.access_token);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
 
             var putRequest = new RestRequest($"v1/playlists/{playlistId}/images", Method.PUT);
             putRequest.AddHeader(contentType, "image/jpeg");
@@ -287,7 +217,8 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             logger.LogInformation($"Set Spotify playlistId: '{playlistId}' details");
 
             var client = new RestClient(options.WebApi);
-            client.Authenticator = new JwtAuthenticator(token.access_token);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
 
             var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.PUT);
             putRequest.AddHeader(contentType, "application/json");
@@ -306,6 +237,40 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             logger.LogInformation($"Set Spotify playlistId: '{playlistId}' details completed");
         }
 
+        public Task MakePlaylistPublic(string playlistId)
+        {
+            return UpdatePlaylistVisibility(playlistId, true);
+        }
+
+        public Task MakePlaylistPrivate(string playlistId)
+        {
+            return UpdatePlaylistVisibility(playlistId, false);
+        }
+
+        private async Task UpdatePlaylistVisibility(string playlistId, bool isPublic)
+        {
+            logger.LogInformation($"Update Spotify playlist: '{playlistId}' visibility - [isPublic: {isPublic.ToString()}]");
+
+            var client = new RestClient(options.WebApi);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
+
+            var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.PUT);
+            putRequest.AddHeader(contentType, "application/json");
+            putRequest.AddJsonBody(new
+            {
+                @public = isPublic ? true : false,
+            });
+            
+            var request = await client.ExecuteAsync(putRequest).ConfigureAwait(false);
+            if (request.StatusCode != HttpStatusCode.Accepted)
+            {
+                logger.LogError($"Update Spotify playlist: '{playlistId}' visibility request end with code: {request.StatusCode} Reason: {request.Content}");
+                return;
+            }
+
+            logger.LogInformation($"Update Spotify playlist: '{playlistId}' visibility request completed");
+        }
 
         public async Task PopulatePlaylist(string id, IReadOnlyCollection<string> spotifyTrackIds)
         {
@@ -339,6 +304,55 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             logger.LogTrace($"Spotify playlist: '{id}' update completed");
         }
 
+        public async Task ClearPlaylist(string playlistId)
+        {
+            logger.LogTrace($"Clear Spotify playlistId: '{playlistId}'");
+
+            var playlistTracks = await GetPlaylistTracks(playlistId);
+            if (playlistTracks is null)
+            {
+                return;
+            }
+
+            var batches = playlistTracks.Batch(100);
+
+            int index = -1;
+            foreach (var bucket in batches)
+            {
+                index++;
+                var client = new RestClient(options.WebApi);
+                var accessToken = authorizationService.GetToken();
+                client.Authenticator = new JwtAuthenticator(accessToken);
+
+                var deleteRequest = new RestRequest($"/v1/playlists/{playlistId}/tracks", Method.DELETE);
+                deleteRequest.AddHeader(contentType, "application/json");
+                deleteRequest.AddJsonBody(new
+                {
+                    tracks = bucket.Select(e => new { uri = e.uri }).ToArray()
+                });
+
+                var request = await client.ExecuteAsync<int>(deleteRequest).ConfigureAwait(false);
+                if (request.StatusCode != System.Net.HttpStatusCode.OK)
+                {
+                    logger.LogError($"Delete all tracks of playlistId: '{playlistId}' request end with code: {request.StatusCode} Reason: {request.Content}");
+                    return;
+                }
+            }
+
+            playlistTracks = await GetPlaylistTracks(playlistId).ConfigureAwait(false);
+            if (playlistTracks is null)
+            {
+                return;
+            }
+
+            if (playlistTracks.Any())
+            {
+                throw new Exception($"This method should remove all track in playlist '{playlistId}' but ther are some left! ({playlistTracks.Count})");
+            }
+
+            logger.LogTrace($"Spotify playlist: '{playlistId}' update completed");
+        }
+
         public async Task<IReadOnlyList<TrackItem>> GetPlaylistTracks(string playlistId)
         {
             List<TrackItem> collection = null;
@@ -348,7 +362,8 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             do
             {
                 var client = new RestClient(options.WebApi);
-                client.Authenticator = new JwtAuthenticator(token.access_token);
+                var accessToken = authorizationService.GetToken();
+                client.Authenticator = new JwtAuthenticator(accessToken);
 
                 var getReqeust = new RestRequest($"/v1/playlists/{playlistId}/tracks", Method.GET);
                 getReqeust.AddHeader(contentType, "application/json");
@@ -393,7 +408,8 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             string albumTypeSingle = "single";
 
             var client = new RestClient(options.WebApi);
-            client.Authenticator = new JwtAuthenticator(token.access_token);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
 
             string artist = HttpUtility.UrlPathEncode(author);
             string trackSubstring = title.Length >= 5 ? title.Substring(0, 5) : title;
@@ -431,6 +447,52 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             return result;
         }
 
+        public async Task<TrackItem> GetTrackInfo_v2(string author, string title)
+        {
+            TrackItem result = null;
+            foreach (var strategy in trackSearchStrategies)
+            {
+                var finding = await strategy.Find(author, title, RequestForTrackInfo);
+
+                if (finding is null)
+                {
+                    continue;
+                }
+
+                result = finding;
+                break;
+            }
+
+            return result;
+        }
+
+        private async Task<IList<TrackItem>> RequestForTrackInfo(string author, string title)
+        {
+            var client = new RestClient(options.WebApi);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
+
+            string artist = HttpUtility.UrlPathEncode(author);
+            string track = HttpUtility.UrlPathEncode(title);
+            var getRequest = new RestRequest($"/v1/search?q=artist%3A{artist}%20track%3A{track}&type=track", Method.GET);
+            var request = await client.ExecuteAsync<TrackRoot>(getRequest).ConfigureAwait(false);
+            if (request.Data is null)
+            {
+                return null;
+            }
+            if (request.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                logger.LogError($"Request to '{request.ResponseUri}' end with code: {request.StatusCode} Reason: {request.Content}");
+                return null;
+            }
+
+            if (request.Data is null)
+            {
+                return null;
+            }
+
+            return request.Data.tracks.items;
+        }
 
         private void InsertToPlaylist(string playlistId, IEnumerable<string> trackIds)
         {
@@ -441,7 +503,8 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             {
                 index++;
                 var client = new RestClient(options.WebApi);
-                client.Authenticator = new JwtAuthenticator(token.access_token);
+                var accessToken = authorizationService.GetToken();
+                client.Authenticator = new JwtAuthenticator(accessToken);
 
                 var postRequest = new RestRequest($"v1/playlists/{playlistId}/tracks", Method.POST);
                 postRequest.AddHeader(contentType, "application/json");
@@ -462,10 +525,12 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             }
             logger.LogInformation($"Inserted to playlistId: '{playlistId}' {trackIds.Count()} items");
         }
-        public void Dispose()
+
+        public Task SetupAccessToken(string authorizationCode)
         {
-            refreshTokenTimer?.Change(Timeout.Infinite, 0);
-            refreshTokenTimer?.Dispose();
+            return Task.FromResult(this.authorizationService.SetupAccessToken(authorizationCode));
         }
     }
 }
+
+

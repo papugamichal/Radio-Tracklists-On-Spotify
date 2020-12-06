@@ -7,10 +7,9 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction
 {
     public interface ISpotifyClientService
     {
-        Task SetAuthorizationCode(string code);
         bool IsAuthenticated();
-        Uri GetAuthorizationCodeUrl();
-        Task SetupAccessToken();
+        Uri GetAuthorizationUri();
+        Task SetupAccessToken(string authorizationCode);
         Task<string> RequestForUserId();
         Task<IReadOnlyList<TrackItem>> GetPlaylistTracks(string playlistId);
         Task PopulatePlaylist(string id, IReadOnlyCollection<string> spotifyTrackIds);
@@ -20,5 +19,8 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction
         Task<string> CreatePlaylist(string userId, string name, bool @public = false, string description = null);
         Task<string> CreateCurrentUserPlaylist(string name, bool @public = false, string description = null);
         Task<IEnumerable<PlaylistDto>> RequestForUserPlaylists();
+        Task ClearPlaylist(string playlistId);
+        Task MakePlaylistPrivate(string playlistId);
+        Task MakePlaylistPublic(string playlistId);
     }
 }

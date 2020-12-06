@@ -10,5 +10,6 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
         Task PopulateSpotifyDailylist();
         Task PopulateSpotifyPlaylistForPeriod(DateTime startDate, DateTime endDate);
         Task<IEnumerable<DateTime>> GetMissingSpotifyPlaylistsSince(DateTime date);
+        Task PopulateTodayAndHandlePreviousPlaylists();
     }
 }
