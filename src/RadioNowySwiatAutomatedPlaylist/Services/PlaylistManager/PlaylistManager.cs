@@ -123,7 +123,7 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
             if (dailyPlaylistTrackCount == 0)
             {
                 await ClearPlaylist(yesterdayPlaylistId).ConfigureAwait(false);
-                await RewriteDayBeforeYesterdayTracksToPlaylist(yesterdayPlaylistId).ConfigureAwait(false);
+                await PopulateYesterdayTracksToPlaylist(yesterdayPlaylistId).ConfigureAwait(false);
                 await ClearPlaylist(todayPlaylistId).ConfigureAwait(false);
                 await MakeDayBeforeYesterdayPlaylistPublic();
             }
@@ -161,7 +161,7 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
             await this.spotifyClient.MakePlaylistPublic(dayBeforeYesterdayPlaylist.id).ConfigureAwait(false);
         }
 
-        private async Task RewriteDayBeforeYesterdayTracksToPlaylist(string playlistId)
+        private async Task PopulateYesterdayTracksToPlaylist(string playlistId)
         {
             var userPlaylist = await this.spotifyClient.RequestForUserPlaylists().ConfigureAwait(false);
             if (userPlaylist is null)
@@ -169,16 +169,16 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
                 return;
             }
 
-            var dayBeforeYesterdayPlaylistName = GetSpotifyDailyPlaylistName(DateTime.Today.AddDays(-2));
+            var yesterdayDailyPlaylistName = GetSpotifyDailyPlaylistName(DateTime.Today.AddDays(-1));
 
-            var dayBeforeYesterdayPlaylist = userPlaylist.Where(playlist => playlist.name.Equals(dayBeforeYesterdayPlaylistName, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
-            if (dayBeforeYesterdayPlaylist is null)
+            var yesterdayDailyPlaylist = userPlaylist.Where(playlist => playlist.name.Equals(yesterdayDailyPlaylistName, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+            if (yesterdayDailyPlaylist is null)
             {
                 // log here warning!
                 return;
             }
 
-            var tracks = await this.spotifyClient.GetPlaylistTracks(dayBeforeYesterdayPlaylist.id);
+            var tracks = await this.spotifyClient.GetPlaylistTracks(yesterdayDailyPlaylist.id);
             if (tracks is null)
             {
                 return;
@@ -186,7 +186,7 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
 
             var trackIds = tracks.Select(e => e.uri).ToList();
             await this.spotifyClient.PopulatePlaylist(playlistId, trackIds).ConfigureAwait(false);
-            var description = System.Web.HttpUtility.HtmlDecode(dayBeforeYesterdayPlaylist.description);
+            var description = System.Web.HttpUtility.HtmlDecode(yesterdayDailyPlaylist.description);
             await this.spotifyClient.SetPlaylistDescription(playlistId, description).ConfigureAwait(false);
         }
 
