@@ -22,5 +22,6 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction
         Task ClearPlaylist(string playlistId);
         Task MakePlaylistPrivate(string playlistId);
         Task MakePlaylistPublic(string playlistId);
+        Task SetPlaylistsVisibility(IEnumerable<string> playlistIds, bool isVisible);
     }
 }

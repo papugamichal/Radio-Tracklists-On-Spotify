@@ -1,30 +1,25 @@
-﻿using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.AspNetCore.SignalR;
+﻿using System;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService.Configuration;
+using RadioNowySwiatPlaylistBot.Services.AccessLimiterHostedService.Configuration;
 using RadioNowySwiatPlaylistBot.Services.PlaylistManager;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
+namespace RadioNowySwiatPlaylistBot.Services.AccessLimiterHostedService
 {
-    public class DailyPlaylistHostedService : IHostedService, IDisposable
+    public class AccessLimiterHostedService : IHostedService, IDisposable
     {
-        private readonly ILogger<DailyPlaylistHostedService> logger;
+        private readonly ILogger<AccessLimiterHostedService> logger;
         private readonly IServiceScopeFactory serviceScopeFactory;
-        private IOptions<DailyPlaylistServiceOptions> options;
+        private IOptions<AccessLimiterServiceOptions> options;
         private Timer timer;
 
-        public DailyPlaylistHostedService(
-            ILogger<DailyPlaylistHostedService> logger,
+        public AccessLimiterHostedService(
+            ILogger<AccessLimiterHostedService> logger,
             IServiceScopeFactory serviceScopeFactory
             )
         {
@@ -37,8 +32,10 @@ namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
             logger.LogInformation("DailyPlaylist hosted service is starting.");
 
             using var scope = serviceScopeFactory.CreateScope();
-            options = scope.ServiceProvider.GetService<IOptions<DailyPlaylistServiceOptions>>();
-            timer = new Timer(DoWork, null, TimeSpan.FromSeconds(10), options.Value.RefreshInterval);
+            options = scope.ServiceProvider.GetService<IOptions<AccessLimiterServiceOptions>>();
+
+            var delay = CalcualteDelayToMidnight();
+            timer = new Timer(DoWork, null, TimeSpan.Zero, options.Value.RefreshInterval);
 
             return Task.CompletedTask;
         }
@@ -53,11 +50,8 @@ namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
                 using var scope = serviceScopeFactory.CreateScope();
                 var manager = scope.ServiceProvider.GetService<IPlaylistManager>();
 
-                /* Version 1 */
-                //manager.PopulateSpotifyDailylist().ConfigureAwait(false).GetAwaiter().GetResult();
-
-                /* Version 2 */
-                manager.PopulateTodayAndHandlePreviousPlaylists().ConfigureAwait(false).GetAwaiter().GetResult(); 
+                var limit = TimeSpan.FromDays(this.options.Value.PublicAccessPlaylistLimit);
+                manager.LimitAccessToPlaylistOlderThan(limit).ConfigureAwait(false).GetAwaiter().GetResult(); 
             }
             catch (Exception e)
             {
@@ -72,6 +66,16 @@ namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
             logger.LogInformation("DailyPlaylist hosted service is stopping.");
             timer?.Change(Timeout.Infinite, 0);
             return Task.CompletedTask;
+        }
+
+        private TimeSpan CalcualteDelayToMidnight()
+        {
+            TimeSpan ScheduledTimespan = new TimeSpan(0, 10, 0);
+            TimeSpan TimeOftheDay = TimeSpan.Parse(DateTime.Now.TimeOfDay.ToString("hh\\:mm"));
+
+            return ScheduledTimespan >= TimeOftheDay
+                ? ScheduledTimespan - TimeOftheDay    // When Scheduled Time for that day is not passed
+                : new TimeSpan(24, 0, 0) - TimeOftheDay + ScheduledTimespan;
         }
 
         public void Dispose()

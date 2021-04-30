@@ -2,8 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -13,6 +11,8 @@ using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
 using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Security;
+using RadioNowySwiatPlaylistBot.Services.AccessLimiterHostedService;
+using RadioNowySwiatPlaylistBot.Services.AccessLimiterHostedService.Configuration;
 using RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService;
 using RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService.Configuration;
 using RadioNowySwiatPlaylistBot.Services.DataSourceService;
@@ -54,6 +54,8 @@ namespace RadioNowySwiatPlaylistBot
                     this.Configuration.GetSection(KeepAliveServiceOptions.SectionName).Bind(config))
                 .Configure<PlaylistManagerOptions>(config =>
                     this.Configuration.GetSection(PlaylistManagerOptions.SectionName).Bind(config))
+                .Configure<AccessLimiterServiceOptions>(config =>
+                    this.Configuration.GetSection(AccessLimiterServiceOptions.SectionName).Bind(config))
                 .AddScoped<IDataSourceService, DataSourceService>()
                 .AddScoped<IPlaylistManager, PlaylistManager>()
                 .AddSingleton<ISpotifyClientService, SpotifyClientService>()
@@ -62,6 +64,7 @@ namespace RadioNowySwiatPlaylistBot
                 .AddSingleton<NotFoundInSpotifyCache>()
                 .AddHostedService<DailyPlaylistHostedService>()
                 .AddHostedService<KeepAliveHostedService>()
+                .AddHostedService<AccessLimiterHostedService>()
                 ;
         }
 

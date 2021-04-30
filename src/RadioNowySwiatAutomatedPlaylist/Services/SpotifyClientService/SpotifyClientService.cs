@@ -237,6 +237,33 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             logger.LogInformation($"Set Spotify playlistId: '{playlistId}' details completed");
         }
 
+        public async Task SetPlaylistsVisibility(IEnumerable<string> playlistIds, bool isVisible)
+        {
+            logger.LogInformation($"Update Spotify playlist visiblity");
+
+            var client = new RestClient(options.WebApi);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
+
+            foreach (var playlistId in playlistIds)
+            {
+                var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.PUT);
+                putRequest.AddHeader(contentType, "application/json");
+                putRequest.AddJsonBody(new
+                {
+                    @public = isVisible
+                });
+
+                var request = await client.ExecuteAsync(putRequest).ConfigureAwait(false);
+                if (request.StatusCode != HttpStatusCode.OK)
+                {
+                    logger.LogError($"Update Spotify playlistId: '{playlistId}' visibility request end with code: {request.StatusCode} Reason: {request.Content}");
+                }
+            }
+
+            logger.LogInformation($"Update Spotify playlist visiblity completed");
+        }
+
         public Task MakePlaylistPublic(string playlistId)
         {
             return UpdatePlaylistVisibility(playlistId, true);

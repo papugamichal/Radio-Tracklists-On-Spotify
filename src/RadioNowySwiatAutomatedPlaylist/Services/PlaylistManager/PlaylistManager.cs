@@ -299,6 +299,49 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
             return EnsureSpotifyPlaylistExists(options.TodayPlaylistName, options.TodayPlaylistDescription, isPublic, options.TodayPlaylistCoverImagePath);
         }
 
+        public async Task LimitAccessToPlaylistOlderThan(TimeSpan limit)
+        {
+            if (!IsAuthenticated())
+            {
+                logger.LogInformation("User is not authenticated");
+                return;
+            }
+
+            var userPlaylists = await spotifyClient.RequestForUserPlaylists().ConfigureAwait(false);
+
+            var playlistPrefix = this.options.DailyNamePrefix;
+
+            var dailyPlaylist = userPlaylists.Where(p => p.name.Contains(playlistPrefix));
+
+            var playlistIdWithDate = dailyPlaylist.Select(p =>
+            {
+                var succeded = DateTime.TryParse(p.name.Remove(0, playlistPrefix.Length).Trim(), out var date);
+                if (succeded)
+                {
+                    return (PlaylistId: p.id, ParsedDate: date);
+                }
+
+                return (null, default);
+            });
+
+            var today = DateTime.Now.Date;
+            var playlistIdToRestrict = new List<string>();
+
+            foreach (var pair in playlistIdWithDate)
+            {
+                if (pair.PlaylistId is null || pair.ParsedDate == default) continue;
+
+                if (pair.ParsedDate < today.Subtract(limit))
+                {
+                    playlistIdToRestrict.Add(pair.PlaylistId);
+                }
+
+                continue;
+            }
+
+            await spotifyClient.SetPlaylistsVisibility(playlistIdToRestrict, false).ConfigureAwait(false);
+        }
+
         public Task<string> EnsureYesterdaySpotifyPlaylistExists(bool isPublic = true)
         {
             return EnsureSpotifyPlaylistExists(options.YesterdayPlaylistName, options.YesterdayPlaylistDescription, isPublic, options.YesterdayPlaylistCoverImagePath);
