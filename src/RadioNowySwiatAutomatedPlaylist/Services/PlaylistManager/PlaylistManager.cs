@@ -329,7 +329,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager
             {
                 if (pair.PlaylistId is null || pair.ParsedDate == default) continue;
 
-                if (pair.ParsedDate.Date < today.Subtract(limit))
+                if (pair.ParsedDate.Date <= today.Subtract(limit))
                 {
                     playlistIdToRestrict.Add(pair.PlaylistId);
                 }
