@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace RadioNowySwiatPlaylistBot.Services.DataSourceService
+namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.DTOs
 {
     public class TrackInfo
     {

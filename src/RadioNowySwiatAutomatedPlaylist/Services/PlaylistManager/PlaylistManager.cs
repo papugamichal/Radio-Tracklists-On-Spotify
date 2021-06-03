@@ -1,19 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RadioNowySwiatPlaylistBot.Services.DataSourceService;
-using RadioNowySwiatPlaylistBot.Services.DataSourceService.Abstraction;
-using RadioNowySwiatPlaylistBot.Services.PlaylistManager.Configuration;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction;
-using RadioNowySwiatPlaylistBot.Services.TrackCache;
+using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Abstraction;
+using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.DTOs;
+using RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager.Configuration;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
+using RadioNowySwiatAutomatedPlaylist.Services.TrackCache;
 
-namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
+namespace RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager
 {
     public class PlaylistManager : IPlaylistManager
     {
@@ -36,7 +34,7 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
             this.options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
             this.dataSourceService = dataSourceService ?? throw new ArgumentNullException(nameof(dataSourceService));
             this.spotifyClient = spotifyClient ?? throw new ArgumentNullException(nameof(spotifyClient));
-            this.foundCache = spotofyCache ?? throw new ArgumentNullException(nameof(spotofyCache));
+            foundCache = spotofyCache ?? throw new ArgumentNullException(nameof(spotofyCache));
             this.notFoundCache = notFoundCache ?? throw new ArgumentNullException(nameof(notFoundCache));
         }
 
@@ -143,7 +141,7 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
 
         private async Task MakeDayBeforeYesterdayPlaylistPublic()
         {
-            var userPlaylist = await this.spotifyClient.RequestForUserPlaylists().ConfigureAwait(false);
+            var userPlaylist = await spotifyClient.RequestForUserPlaylists().ConfigureAwait(false);
             if (userPlaylist is null)
             {
                 return;
@@ -158,12 +156,12 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
                 return;
             }
 
-            await this.spotifyClient.MakePlaylistPublic(dayBeforeYesterdayPlaylist.id).ConfigureAwait(false);
+            await spotifyClient.MakePlaylistPublic(dayBeforeYesterdayPlaylist.id).ConfigureAwait(false);
         }
 
         private async Task PopulateYesterdayTracksToPlaylist(string playlistId)
         {
-            var userPlaylist = await this.spotifyClient.RequestForUserPlaylists().ConfigureAwait(false);
+            var userPlaylist = await spotifyClient.RequestForUserPlaylists().ConfigureAwait(false);
             if (userPlaylist is null)
             {
                 return;
@@ -178,16 +176,16 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
                 return;
             }
 
-            var tracks = await this.spotifyClient.GetPlaylistTracks(yesterdayDailyPlaylist.id);
+            var tracks = await spotifyClient.GetPlaylistTracks(yesterdayDailyPlaylist.id);
             if (tracks is null)
             {
                 return;
             }
 
             var trackIds = tracks.Select(e => e.uri).ToList();
-            await this.spotifyClient.PopulatePlaylist(playlistId, trackIds).ConfigureAwait(false);
+            await spotifyClient.PopulatePlaylist(playlistId, trackIds).ConfigureAwait(false);
             var description = System.Web.HttpUtility.HtmlDecode(yesterdayDailyPlaylist.description);
-            await this.spotifyClient.SetPlaylistDescription(playlistId, description).ConfigureAwait(false);
+            await spotifyClient.SetPlaylistDescription(playlistId, description).ConfigureAwait(false);
         }
 
         private Task ClearPlaylist(string playlistId)
@@ -299,6 +297,49 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
             return EnsureSpotifyPlaylistExists(options.TodayPlaylistName, options.TodayPlaylistDescription, isPublic, options.TodayPlaylistCoverImagePath);
         }
 
+        public async Task LimitAccessToPlaylistOlderThan(TimeSpan limit)
+        {
+            if (!IsAuthenticated())
+            {
+                logger.LogInformation("User is not authenticated");
+                return;
+            }
+
+            var userPlaylists = await spotifyClient.RequestForUserPlaylists().ConfigureAwait(false);
+
+            var playlistPrefix = options.DailyNamePrefix;
+
+            var dailyPlaylists = userPlaylists.Where(p => p.name.Contains(playlistPrefix));
+
+            var playlistIdWithDate = dailyPlaylists.Select(playlist =>
+            {
+                var succeded = DateTime.TryParse(playlist.name.Remove(0, playlistPrefix.Length).Trim(), out var date);
+                if (succeded)
+                {
+                    return (PlaylistId: playlist.id, ParsedDate: date);
+                }
+
+                return (null, default);
+            });
+
+            var today = DateTime.Now.Date;
+            var playlistIdToRestrict = new List<string>();
+
+            foreach (var pair in playlistIdWithDate)
+            {
+                if (pair.PlaylistId is null || pair.ParsedDate == default) continue;
+
+                if (pair.ParsedDate.Date <= today.Subtract(limit))
+                {
+                    playlistIdToRestrict.Add(pair.PlaylistId);
+                }
+
+                continue;
+            }
+
+            await spotifyClient.SetPlaylistsVisibility(playlistIdToRestrict, false).ConfigureAwait(false);
+        }
+
         public Task<string> EnsureYesterdaySpotifyPlaylistExists(bool isPublic = true)
         {
             return EnsureSpotifyPlaylistExists(options.YesterdayPlaylistName, options.YesterdayPlaylistDescription, isPublic, options.YesterdayPlaylistCoverImagePath);
@@ -330,8 +371,8 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
 
         private async Task<int> GetPlaylistsTrackCount(string playlistId)
         {
-            var tracks = await this.spotifyClient.GetPlaylistTracks(playlistId).ConfigureAwait(false);
-            
+            var tracks = await spotifyClient.GetPlaylistTracks(playlistId).ConfigureAwait(false);
+
             if (tracks is null)
             {
                 return default;

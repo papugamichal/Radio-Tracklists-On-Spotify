@@ -1,4 +1,4 @@
-﻿namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs
+﻿namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.DTOs
 {
     public class UserDetailsDto
     {

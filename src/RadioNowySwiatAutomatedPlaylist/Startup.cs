@@ -2,8 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -11,19 +9,22 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
+using RadioNowySwiatAutomatedPlaylist.HostedServices.KeepAlive;
+using RadioNowySwiatAutomatedPlaylist.HostedServices.KeepAlive.Configuration;
+using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater;
+using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater.Configuration;
+using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistVisibilityLimiter;
+using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistVisibilityLimiter.Configuration;
+using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService;
+using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Abstraction;
+using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Configuration;
+using RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager;
+using RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager.Configuration;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService;
 using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Configuration;
 using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Security;
-using RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService;
-using RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService.Configuration;
-using RadioNowySwiatPlaylistBot.Services.DataSourceService;
-using RadioNowySwiatPlaylistBot.Services.DataSourceService.Abstraction;
-using RadioNowySwiatPlaylistBot.Services.DataSourceService.Configuration;
-using RadioNowySwiatPlaylistBot.Services.PlaylistManager;
-using RadioNowySwiatPlaylistBot.Services.PlaylistManager.Configuration;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Configuration;
-using RadioNowySwiatPlaylistBot.Services.TrackCache;
+using RadioNowySwiatAutomatedPlaylist.Services.TrackCache;
 
 namespace RadioNowySwiatPlaylistBot
 {
@@ -48,20 +49,23 @@ namespace RadioNowySwiatPlaylistBot
                     this.Configuration.GetSection(SpotifyClientOptions.SectionName).Bind(config))
                 .Configure<SpotifyAuthorizationServiceOptions>(config =>
                     this.Configuration.GetSection(SpotifyAuthorizationServiceOptions.SectionName).Bind(config))
-                .Configure<DailyPlaylistServiceOptions>(config =>
-                    this.Configuration.GetSection(DailyPlaylistServiceOptions.SectionName).Bind(config))
+                .Configure<PlaylistUpdaterOptions>(config =>
+                    this.Configuration.GetSection(PlaylistUpdaterOptions.SectionName).Bind(config))
                 .Configure<KeepAliveServiceOptions>(config =>
                     this.Configuration.GetSection(KeepAliveServiceOptions.SectionName).Bind(config))
                 .Configure<PlaylistManagerOptions>(config =>
                     this.Configuration.GetSection(PlaylistManagerOptions.SectionName).Bind(config))
+                .Configure<PlaylistVisibilityLimiterOptions>(config =>
+                    this.Configuration.GetSection(PlaylistVisibilityLimiterOptions.SectionName).Bind(config))
                 .AddScoped<IDataSourceService, DataSourceService>()
                 .AddScoped<IPlaylistManager, PlaylistManager>()
                 .AddSingleton<ISpotifyClientService, SpotifyClientService>()
                 .AddSingleton<ISpotifyAuthorizationService, SpotifyAuthorizationService>()
                 .AddSingleton<FoundInSpotifyCache>()
                 .AddSingleton<NotFoundInSpotifyCache>()
-                .AddHostedService<DailyPlaylistHostedService>()
+                .AddHostedService<PlaylistUpdaterHostedService>()
                 .AddHostedService<KeepAliveHostedService>()
+                .AddHostedService<PlaylistVisibilityLimiterHostedService>()
                 ;
         }
 

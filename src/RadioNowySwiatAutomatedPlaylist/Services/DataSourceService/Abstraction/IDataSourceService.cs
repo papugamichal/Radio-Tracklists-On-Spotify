@@ -1,9 +1,9 @@
-﻿using RadioNowySwiatPlaylistBot.Services.DataSourceService;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.DTOs;
 
-namespace RadioNowySwiatPlaylistBot.Services.DataSourceService.Abstraction
+namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Abstraction
 {
     public interface IDataSourceService
     {

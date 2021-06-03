@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,9 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService.Configuration;
+using RadioNowySwiatAutomatedPlaylist.HostedServices.KeepAlive.Configuration;
 
-namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
+namespace RadioNowySwiatAutomatedPlaylist.HostedServices.KeepAlive
 {
     public class KeepAliveHostedService : IHostedService, IDisposable
     {
@@ -35,11 +32,11 @@ namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
             logger.LogInformation("Keep alive service is starting.");
 
             using var scope = serviceScopeFactory.CreateScope();
-            this.options = scope.ServiceProvider.GetService<IOptions<KeepAliveServiceOptions>>();
-            
-            if (this.options.Value.Enabled)
+            options = scope.ServiceProvider.GetService<IOptions<KeepAliveServiceOptions>>();
+
+            if (options.Value.Enabled)
             {
-                this.timer = new Timer(DoWork, null, TimeSpan.FromSeconds(30), options.Value.RefreshInterval);
+                timer = new Timer(DoWork, null, TimeSpan.FromSeconds(30), options.Value.RefreshInterval);
             }
             else
             {
@@ -52,7 +49,7 @@ namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
         private void DoWork(object state)
         {
             var client = new HttpClient();
-            var request = client.GetAsync(this.options.Value.Url).ConfigureAwait(false).GetAwaiter().GetResult();
+            var request = client.GetAsync(options.Value.Url).ConfigureAwait(false).GetAwaiter().GetResult();
 
             if (request.StatusCode != System.Net.HttpStatusCode.OK)
             {

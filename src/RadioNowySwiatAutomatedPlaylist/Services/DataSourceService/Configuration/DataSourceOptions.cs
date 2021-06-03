@@ -1,4 +1,4 @@
-﻿namespace RadioNowySwiatPlaylistBot.Services.DataSourceService.Configuration
+﻿namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Configuration
 {
     public class DataSourceOptions
     {

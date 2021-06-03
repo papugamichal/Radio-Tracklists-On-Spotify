@@ -8,16 +8,15 @@ using System.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MoreLinq;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Configuration;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.DTOs;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.DTOs.PlaylistTrack2;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Strategies;
 using RestSharp;
 using RestSharp.Authenticators;
-using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
-using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Strategies;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Configuration;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs.PlaylistTrack2;
 
-namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
+namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
 {
     public class SpotifyClientService : ISpotifyClientService
     {
@@ -37,9 +36,9 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             )
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            this.iOptions = options ?? throw new ArgumentNullException(nameof(options));
+            iOptions = options ?? throw new ArgumentNullException(nameof(options));
             this.authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
-            this.trackSearchStrategies = new List<ITrackFinderStrategy>()
+            trackSearchStrategies = new List<ITrackFinderStrategy>()
             {
                 new FullArtistFullTitleStrategy(),
                 new FullArtistTitleWithoutApostropheStrategy(),
@@ -51,12 +50,12 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
         /* Authorization */
         public Uri GetAuthorizationUri()
         {
-            return this.authorizationService.GetAuthorizationCodeUri();
+            return authorizationService.GetAuthorizationCodeUri();
         }
 
         public bool IsAuthenticated()
         {
-            return this.authorizationService.IsAuthenticated();
+            return authorizationService.IsAuthenticated();
         }
 
         /* API */
@@ -73,7 +72,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             {
                 return string.Empty;
             }
-            if (request.StatusCode != System.Net.HttpStatusCode.OK)
+            if (request.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogError($"Request to '{request.ResponseUri}' end with code: {request.StatusCode} Reason: {request.Content}");
                 return request.Content;
@@ -94,7 +93,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             {
                 return Array.Empty<PlaylistDto>();
             }
-            if (request.StatusCode != System.Net.HttpStatusCode.OK)
+            if (request.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogError($"Request to '{request.ResponseUri}' end with code: {request.StatusCode} Reason: {request.Content}");
                 return Array.Empty<PlaylistDto>();
@@ -114,7 +113,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             {
                 return Array.Empty<PlaylistDto>();
             }
-            if (request.StatusCode != System.Net.HttpStatusCode.OK)
+            if (request.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogError($"Request to '{request.ResponseUri}' end with code: {request.StatusCode} Reason: {request.Content}");
                 return Array.Empty<PlaylistDto>();
@@ -134,7 +133,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             {
                 return string.Empty;
             }
-            if (request.StatusCode != System.Net.HttpStatusCode.OK)
+            if (request.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogError($"Request to '{request.ResponseUri}' end with code: {request.StatusCode} Reason: {request.Content}");
 
@@ -166,9 +165,9 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             postRequest.AddHeader(contentType, "application/json");
             postRequest.AddJsonBody(new
             {
-                name = name,
+                name,
                 description = description ?? string.Empty,
-                @public = @public
+                @public
             });
 
             var request = await client.ExecuteAsync<PlaylistDto>(postRequest).ConfigureAwait(false);
@@ -237,6 +236,33 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             logger.LogInformation($"Set Spotify playlistId: '{playlistId}' details completed");
         }
 
+        public async Task SetPlaylistsVisibility(IEnumerable<string> playlistIds, bool isVisible)
+        {
+            logger.LogInformation($"Update Spotify playlist visiblity");
+
+            var client = new RestClient(options.WebApi);
+            var accessToken = authorizationService.GetToken();
+            client.Authenticator = new JwtAuthenticator(accessToken);
+
+            foreach (var playlistId in playlistIds)
+            {
+                var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.PUT);
+                putRequest.AddHeader(contentType, "application/json");
+                putRequest.AddJsonBody(new
+                {
+                    @public = isVisible
+                });
+
+                var request = await client.ExecuteAsync(putRequest).ConfigureAwait(false);
+                if (request.StatusCode != HttpStatusCode.OK)
+                {
+                    logger.LogError($"Update Spotify playlistId: '{playlistId}' visibility request end with code: {request.StatusCode} Reason: {request.Content}");
+                }
+            }
+
+            logger.LogInformation($"Update Spotify playlist visiblity completed");
+        }
+
         public Task MakePlaylistPublic(string playlistId)
         {
             return UpdatePlaylistVisibility(playlistId, true);
@@ -261,7 +287,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             {
                 @public = isPublic ? true : false,
             });
-            
+
             var request = await client.ExecuteAsync(putRequest).ConfigureAwait(false);
             if (request.StatusCode != HttpStatusCode.Accepted)
             {
@@ -289,7 +315,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             }
 
             var tracksToAdd = new List<string>();
-            foreach(var trackId in spotifyTrackIds)
+            foreach (var trackId in spotifyTrackIds)
             {
                 if (playlistTracks.Any(playlistTrack => playlistTrack.uri == trackId))
                 {
@@ -328,11 +354,11 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
                 deleteRequest.AddHeader(contentType, "application/json");
                 deleteRequest.AddJsonBody(new
                 {
-                    tracks = bucket.Select(e => new { uri = e.uri }).ToArray()
+                    tracks = bucket.Select(e => new { e.uri }).ToArray()
                 });
 
                 var request = await client.ExecuteAsync<int>(deleteRequest).ConfigureAwait(false);
-                if (request.StatusCode != System.Net.HttpStatusCode.OK)
+                if (request.StatusCode != HttpStatusCode.OK)
                 {
                     logger.LogError($"Delete all tracks of playlistId: '{playlistId}' request end with code: {request.StatusCode} Reason: {request.Content}");
                     return;
@@ -371,7 +397,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
                 getReqeust.AddParameter("limit", bucketSize);
 
                 var request = await client.ExecuteAsync<PlaylistTrack2>(getReqeust).ConfigureAwait(false);
-                if (request.StatusCode != System.Net.HttpStatusCode.OK)
+                if (request.StatusCode != HttpStatusCode.OK)
                 {
                     logger.LogError($"Get tracks of playlistId: '{playlistId}' request end with code: {request.StatusCode} Reason: {request.Content}");
                     return null;
@@ -420,7 +446,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             {
                 return null;
             }
-            if (request.StatusCode != System.Net.HttpStatusCode.OK)
+            if (request.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogError($"Request to '{request.ResponseUri}' end with code: {request.StatusCode} Reason: {request.Content}");
                 return null;
@@ -480,7 +506,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             {
                 return null;
             }
-            if (request.StatusCode != System.Net.HttpStatusCode.OK)
+            if (request.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogError($"Request to '{request.ResponseUri}' end with code: {request.StatusCode} Reason: {request.Content}");
                 return null;
@@ -499,7 +525,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
             var batches = trackIds.Batch(100);
 
             int index = -1;
-            foreach(var bucket in batches)
+            foreach (var bucket in batches)
             {
                 index++;
                 var client = new RestClient(options.WebApi);
@@ -517,7 +543,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
 
                 var request = client.ExecuteAsync(postRequest).ConfigureAwait(false).GetAwaiter().GetResult();
 
-                if (request.StatusCode != System.Net.HttpStatusCode.Created)
+                if (request.StatusCode != HttpStatusCode.Created)
                 {
                     logger.LogError($"Refresh access token request end with code: {request.StatusCode} Reason: {request.Content}");
                     return;
@@ -528,9 +554,7 @@ namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService
 
         public Task SetupAccessToken(string authorizationCode)
         {
-            return Task.FromResult(this.authorizationService.SetupAccessToken(authorizationCode));
+            return Task.FromResult(authorizationService.SetupAccessToken(authorizationCode));
         }
     }
 }
-
-

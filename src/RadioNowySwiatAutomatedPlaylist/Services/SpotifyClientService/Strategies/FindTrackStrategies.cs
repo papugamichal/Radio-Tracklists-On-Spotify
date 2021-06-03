@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.DTOs;
 
 namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Strategies
 {

@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
-namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
+namespace RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager
 {
     interface IPlaylistManager
     {
@@ -11,5 +10,6 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
         Task PopulateSpotifyPlaylistForPeriod(DateTime startDate, DateTime endDate);
         Task<IEnumerable<DateTime>> GetMissingSpotifyPlaylistsSince(DateTime date);
         Task PopulateTodayAndHandlePreviousPlaylists();
+        Task LimitAccessToPlaylistOlderThan(TimeSpan limit);
     }
 }

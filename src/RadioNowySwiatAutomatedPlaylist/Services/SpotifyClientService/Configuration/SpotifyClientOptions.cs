@@ -1,6 +1,4 @@
-﻿using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Security;
-
-namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Configuration
+﻿namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Configuration
 {
     public class SpotifyClientOptions
     {
