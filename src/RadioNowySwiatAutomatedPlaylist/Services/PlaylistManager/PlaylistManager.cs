@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -311,14 +309,14 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager
 
             var playlistPrefix = this.options.DailyNamePrefix;
 
-            var dailyPlaylist = userPlaylists.Where(p => p.name.Contains(playlistPrefix));
+            var dailyPlaylists = userPlaylists.Where(p => p.name.Contains(playlistPrefix));
 
-            var playlistIdWithDate = dailyPlaylist.Select(p =>
+            var playlistIdWithDate = dailyPlaylists.Select(playlist =>
             {
-                var succeded = DateTime.TryParse(p.name.Remove(0, playlistPrefix.Length).Trim(), out var date);
+                var succeded = DateTime.TryParse(playlist.name.Remove(0, playlistPrefix.Length).Trim(), out var date);
                 if (succeded)
                 {
-                    return (PlaylistId: p.id, ParsedDate: date);
+                    return (PlaylistId: playlist.id, ParsedDate: date);
                 }
 
                 return (null, default);

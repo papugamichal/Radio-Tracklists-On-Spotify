@@ -6,20 +6,20 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RadioNowySwiatPlaylistBot.Services.AccessLimiterHostedService.Configuration;
 using RadioNowySwiatPlaylistBot.Services.PlaylistManager;
+using RadioNowySwiatPlaylistBot.Services.PlaylistVisibilityLimiterHostedService.Configuration;
 
-namespace RadioNowySwiatPlaylistBot.Services.AccessLimiterHostedService
+namespace RadioNowySwiatPlaylistBot.Services.PlaylistVisibilityLimiterHostedService
 {
-    public class AccessLimiterHostedService : IHostedService, IDisposable
+    public class PlaylistVisibilityLimiterHostedService : IHostedService, IDisposable
     {
-        private readonly ILogger<AccessLimiterHostedService> logger;
+        private readonly ILogger<PlaylistVisibilityLimiterHostedService> logger;
         private readonly IServiceScopeFactory serviceScopeFactory;
-        private IOptions<AccessLimiterServiceOptions> options;
+        private IOptions<PlaylistVisibilityLimiterOptions> options;
         private Timer timer;
 
-        public AccessLimiterHostedService(
-            ILogger<AccessLimiterHostedService> logger,
+        public PlaylistVisibilityLimiterHostedService(
+            ILogger<PlaylistVisibilityLimiterHostedService> logger,
             IServiceScopeFactory serviceScopeFactory
             )
         {
@@ -29,13 +29,21 @@ namespace RadioNowySwiatPlaylistBot.Services.AccessLimiterHostedService
 
         public Task StartAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation("DailyPlaylist hosted service is starting.");
+            logger.LogInformation("Public playlist limiter hosted service is starting.");
 
             using var scope = serviceScopeFactory.CreateScope();
-            options = scope.ServiceProvider.GetService<IOptions<AccessLimiterServiceOptions>>();
+            options = scope.ServiceProvider.GetService<IOptions<PlaylistVisibilityLimiterOptions>>();
+
+            if (!options.Value.Enabled)
+            {
+                logger.LogInformation("Service is disabled.");
+                return Task.CompletedTask;
+            }
 
             var delay = CalcualteDelayToMidnight();
-            timer = new Timer(DoWork, null, TimeSpan.Zero, options.Value.RefreshInterval);
+            timer = new Timer(DoWork, null, delay, options.Value.RefreshInterval);
+
+            DoWork(null);
 
             return Task.CompletedTask;
         }
@@ -50,20 +58,26 @@ namespace RadioNowySwiatPlaylistBot.Services.AccessLimiterHostedService
                 using var scope = serviceScopeFactory.CreateScope();
                 var manager = scope.ServiceProvider.GetService<IPlaylistManager>();
 
-                var limit = TimeSpan.FromDays(this.options.Value.PublicAccessPlaylistLimit);
+                var limit = TimeSpan.FromDays(this.options.Value.Limit);
                 manager.LimitAccessToPlaylistOlderThan(limit).ConfigureAwait(false).GetAwaiter().GetResult(); 
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Something went wrong during processing daily playlist!");
+                logger.LogError(e, "Something went wrong during update visibility of public playlist!");
             }
 
-            logger.LogInformation($"Update playlist completed. Handled in {sw.Elapsed.TotalSeconds} seconds");
+            logger.LogInformation($"Update visibility of public playlist completed. Handled in {sw.Elapsed.TotalSeconds} seconds");
         }
 
         public Task StopAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation("DailyPlaylist hosted service is stopping.");
+            logger.LogInformation("Public playlist limiter hosted service is stopping.");
+
+            if (!options.Value.Enabled)
+            {
+                return Task.CompletedTask;
+            }
+
             timer?.Change(Timeout.Infinite, 0);
             return Task.CompletedTask;
         }
