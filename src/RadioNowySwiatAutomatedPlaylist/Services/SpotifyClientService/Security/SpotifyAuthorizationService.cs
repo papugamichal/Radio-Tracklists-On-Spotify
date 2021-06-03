@@ -53,7 +53,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Security
             this.options = options ?? throw new ArgumentNullException(nameof(options));
             this.dataProtector = (dataProtector ?? throw new ArgumentNullException(nameof(dataProtector))).CreateProtector("authorizationToken");
             this.refreshTokenTimer = new Timer(RefreshToken, null, TimeSpan.Zero, defaultTimerInterval);
-            protectedTokenFilePath = Path.Combine(Directory.GetCurrentDirectory(), "accesstoken");
+            this.protectedTokenFilePath = Path.Combine(Directory.GetCurrentDirectory(), "accesstoken");
             this.tokenDto = InitializeAccessToken();
         }
 

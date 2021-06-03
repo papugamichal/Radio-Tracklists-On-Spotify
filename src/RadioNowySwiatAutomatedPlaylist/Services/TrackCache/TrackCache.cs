@@ -17,13 +17,14 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.TrackCache
         private readonly ConcurrentDictionary<Guid, CacheEntity> cache;
         private readonly Timer timer;
         private readonly string serializedCachePath;
+        private readonly string serializedFileName;
 
         public TrackCache(
             ILogger logger, string serializedFileName = "cache"
             )
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            serializedFileName = serializedFileName.Contains(".") ? serializedFileName : serializedFileName + ".json";
+            this.serializedFileName = serializedFileName.Contains(".") ? serializedFileName : serializedFileName + ".json";
             serializedCachePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), serializedFileName);
             timer = new Timer(DoWork, null, TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(5));
 
@@ -37,7 +38,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.TrackCache
                 }
                 catch (Exception e)
                 {
-                    logger.LogError(e, "Something went wrong during cache deserialization");
+                    logger.LogError(e, $"Something went wrong during '{serializedFileName}' deserialization");
                     cache = new ConcurrentDictionary<Guid, CacheEntity>();
                 }
             }
@@ -102,6 +103,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.TrackCache
         {
             _ = DoWork();
         }
+
         private async Task DoWork()
         {
             try
@@ -112,7 +114,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.TrackCache
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Something went wrong during cache serialization");
+                logger.LogError(e, $"Something went wrong during '{serializedFileName}' deserialization");
             }
         }
     }
