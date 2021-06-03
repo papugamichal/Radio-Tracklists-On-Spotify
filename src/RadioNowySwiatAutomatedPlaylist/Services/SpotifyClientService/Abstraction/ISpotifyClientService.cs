@@ -1,9 +1,9 @@
-﻿using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.DTOs;
 
-namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction
+namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction
 {
     public interface ISpotifyClientService
     {

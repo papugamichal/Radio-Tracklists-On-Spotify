@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs.PlaylistTrack2
+namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.DTOs.PlaylistTrack2
 {
     // Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse); 
     // Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse); 

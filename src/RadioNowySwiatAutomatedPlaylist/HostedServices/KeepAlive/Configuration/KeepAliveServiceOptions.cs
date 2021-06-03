@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService.Configuration
+namespace RadioNowySwiatAutomatedPlaylist.HostedServices.KeepAlive.Configuration
 {
     public class KeepAliveServiceOptions
     {

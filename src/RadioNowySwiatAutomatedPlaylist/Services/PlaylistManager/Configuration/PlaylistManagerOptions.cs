@@ -1,4 +1,4 @@
-﻿namespace RadioNowySwiatPlaylistBot.Services.PlaylistManager.Configuration
+﻿namespace RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager.Configuration
 {
     public class PlaylistManagerOptions
     {

@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs
+namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.DTOs
 {
     public class ExternalUrls3
     {

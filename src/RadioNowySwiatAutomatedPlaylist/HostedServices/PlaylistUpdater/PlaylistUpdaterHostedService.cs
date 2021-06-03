@@ -1,30 +1,25 @@
-﻿using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.AspNetCore.SignalR;
+﻿using System;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService.Configuration;
-using RadioNowySwiatPlaylistBot.Services.PlaylistManager;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.Abstraction;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater.Configuration;
+using RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager;
 
-namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
+namespace RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater
 {
-    public class DailyPlaylistHostedService : IHostedService, IDisposable
+    public class PlaylistUpdaterHostedService : IHostedService, IDisposable
     {
-        private readonly ILogger<DailyPlaylistHostedService> logger;
+        private readonly ILogger<PlaylistUpdaterHostedService> logger;
         private readonly IServiceScopeFactory serviceScopeFactory;
-        private IOptions<DailyPlaylistServiceOptions> options;
+        private IOptions<PlaylistUpdaterOptions> options;
         private Timer timer;
 
-        public DailyPlaylistHostedService(
-            ILogger<DailyPlaylistHostedService> logger,
+        public PlaylistUpdaterHostedService(
+            ILogger<PlaylistUpdaterHostedService> logger,
             IServiceScopeFactory serviceScopeFactory
             )
         {
@@ -37,7 +32,7 @@ namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
             logger.LogInformation("DailyPlaylist hosted service is starting.");
 
             using var scope = serviceScopeFactory.CreateScope();
-            options = scope.ServiceProvider.GetService<IOptions<DailyPlaylistServiceOptions>>();
+            options = scope.ServiceProvider.GetService<IOptions<PlaylistUpdaterOptions>>();
             timer = new Timer(DoWork, null, TimeSpan.FromSeconds(10), options.Value.RefreshInterval);
 
             return Task.CompletedTask;
@@ -57,7 +52,7 @@ namespace RadioNowySwiatPlaylistBot.Services.DailyPlaylistHostedService
                 //manager.PopulateSpotifyDailylist().ConfigureAwait(false).GetAwaiter().GetResult();
 
                 /* Version 2 */
-                manager.PopulateTodayAndHandlePreviousPlaylists().ConfigureAwait(false).GetAwaiter().GetResult(); 
+                manager.PopulateTodayAndHandlePreviousPlaylists().ConfigureAwait(false).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {

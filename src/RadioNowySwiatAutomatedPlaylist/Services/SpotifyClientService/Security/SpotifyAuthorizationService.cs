@@ -1,18 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Policy;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.DTOs;
 using RestSharp;
 using RestSharp.Authenticators;
-using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
-using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs;
-using System.IO;
 
 namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction
 {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace RadioNowySwiatPlaylistBot.Services.PlaylistVisibilityLimiterHostedService.Configuration
+namespace RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistVisibilityLimiter.Configuration
 {
     public class PlaylistVisibilityLimiterOptions
     {

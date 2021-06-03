@@ -6,10 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using RadioNowySwiatPlaylistBot.Services.PlaylistManager;
-using RadioNowySwiatPlaylistBot.Services.PlaylistVisibilityLimiterHostedService.Configuration;
+using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistVisibilityLimiter.Configuration;
+using RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager;
 
-namespace RadioNowySwiatPlaylistBot.Services.PlaylistVisibilityLimiterHostedService
+namespace RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistVisibilityLimiter
 {
     public class PlaylistVisibilityLimiterHostedService : IHostedService, IDisposable
     {
@@ -58,8 +58,8 @@ namespace RadioNowySwiatPlaylistBot.Services.PlaylistVisibilityLimiterHostedServ
                 using var scope = serviceScopeFactory.CreateScope();
                 var manager = scope.ServiceProvider.GetService<IPlaylistManager>();
 
-                var limit = TimeSpan.FromDays(this.options.Value.Limit);
-                manager.LimitAccessToPlaylistOlderThan(limit).ConfigureAwait(false).GetAwaiter().GetResult(); 
+                var limit = TimeSpan.FromDays(options.Value.Limit);
+                manager.LimitAccessToPlaylistOlderThan(limit).ConfigureAwait(false).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {

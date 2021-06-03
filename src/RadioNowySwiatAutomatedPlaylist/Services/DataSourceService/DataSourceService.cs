@@ -1,15 +1,16 @@
-﻿using HtmlAgilityPack;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using RadioNowySwiatPlaylistBot.Services.DataSourceService.Abstraction;
-using RadioNowySwiatPlaylistBot.Services.DataSourceService.Configuration;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using HtmlAgilityPack;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Abstraction;
+using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Configuration;
+using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.DTOs;
 
-namespace RadioNowySwiatPlaylistBot.Services.DataSourceService
+namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
 {
     public class DataSourceService : IDataSourceService
     {
@@ -54,7 +55,7 @@ namespace RadioNowySwiatPlaylistBot.Services.DataSourceService
             }
             return collection;
         }
-        
+
         private string GetDataSourceUrlFor(DateTime date)
         {
             return options.PlaylistEndpoint + date.ToString(options.DateFormat);
@@ -77,13 +78,13 @@ namespace RadioNowySwiatPlaylistBot.Services.DataSourceService
         public async Task<Dictionary<DateTime, IReadOnlyCollection<TrackInfo>>> GetPlaylistForRange(DateTime startDate, DateTime endDate)
         {
             var dateRange = Enumerable.Range(0, 1 + endDate.Subtract(startDate).Days)
-                .Select(offset => endDate.AddDays(offset * (-1)))
+                .Select(offset => endDate.AddDays(offset * -1))
                 .ToList();
 
             var result = new Dictionary<DateTime, IReadOnlyCollection<TrackInfo>>();
             foreach (var dateOfInterest in dateRange)
             {
-                var datePlaylist = await this.GetPlaylistFor(dateOfInterest);
+                var datePlaylist = await GetPlaylistFor(dateOfInterest);
 
                 if (datePlaylist is null)
                 {

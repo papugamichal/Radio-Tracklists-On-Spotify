@@ -1,8 +1,7 @@
-﻿using RadioNowySwiatPlaylistBot.Services.SpotifyClientService.DTOs;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.DTOs;
 
 namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction
 {
