@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RadioNowySwiatAutomatedPlaylist.HostedServices.KeepAlive;
 using RadioNowySwiatAutomatedPlaylist.HostedServices.KeepAlive.Configuration;
@@ -43,8 +45,8 @@ namespace RadioNowySwiatPlaylistBot
 
             services
                 .AddDataProtection().Services
-                .Configure<DataSourceOptions>(config =>
-                    this.Configuration.GetSection(DataSourceOptions.SectionName).Bind(config))
+                //.Configure<DataSourceOptions>(config =>
+                //    this.Configuration.GetSection(DataSourceOptions.SectionName).Bind(config))
                 .Configure<SpotifyClientOptions>(config =>
                     this.Configuration.GetSection(SpotifyClientOptions.SectionName).Bind(config))
                 .Configure<SpotifyAuthorizationServiceOptions>(config =>
@@ -57,7 +59,16 @@ namespace RadioNowySwiatPlaylistBot
                     this.Configuration.GetSection(PlaylistManagerOptions.SectionName).Bind(config))
                 .Configure<PlaylistVisibilityLimiterOptions>(config =>
                     this.Configuration.GetSection(PlaylistVisibilityLimiterOptions.SectionName).Bind(config))
-                .AddScoped<IDataSourceService, DataSourceService>()
+                .AddScoped<IDataSourceService, DataSourceService>(provider =>
+                {
+                    var logger = provider.GetRequiredService<ILogger<DataSourceService>>();
+                    var configuration = provider.GetRequiredService<IConfiguration>();
+                    
+                    var _options = new DataSourceOptions();
+                    configuration.Bind(_options);
+                    var options = Options.Create(_options);
+                    return new DataSourceService(logger, options);
+                })
                 .AddScoped<IPlaylistManager, PlaylistManager>()
                 .AddSingleton<ISpotifyClientService, SpotifyClientService>()
                 .AddSingleton<ISpotifyAuthorizationService, SpotifyAuthorizationService>()
