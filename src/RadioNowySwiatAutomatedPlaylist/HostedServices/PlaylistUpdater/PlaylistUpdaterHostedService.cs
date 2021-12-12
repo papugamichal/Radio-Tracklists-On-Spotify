@@ -11,15 +11,15 @@ using RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager;
 
 namespace RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater
 {
-    public class PlaylistUpdaterHostedService : IHostedService, IDisposable
+    public abstract class PlaylistUpdaterHostedService : IHostedService, IDisposable
     {
-        private readonly ILogger<PlaylistUpdaterHostedService> logger;
+        private readonly ILogger logger;
         private readonly IServiceScopeFactory serviceScopeFactory;
         private IOptions<PlaylistUpdaterOptions> options;
         private Timer timer;
 
         public PlaylistUpdaterHostedService(
-            ILogger<PlaylistUpdaterHostedService> logger,
+            ILogger logger,
             IServiceScopeFactory serviceScopeFactory
             )
         {
@@ -27,14 +27,23 @@ namespace RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater
             this.serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
         }
 
+        internal abstract string RadioName { get; }
+        internal abstract IPlaylistManager PlaylistMangerProvider(IServiceProvider provider);
+        internal abstract IOptions<PlaylistUpdaterOptions> OptionsProvider(IServiceProvider provider);
+
         public Task StartAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation("DailyPlaylist hosted service is starting.");
-
             using var scope = serviceScopeFactory.CreateScope();
-            options = scope.ServiceProvider.GetService<IOptions<PlaylistUpdaterOptions>>();
-            timer = new Timer(DoWork, null, TimeSpan.FromSeconds(10), options.Value.RefreshInterval);
+            options = OptionsProvider(scope.ServiceProvider);
 
+            if (!options.Value.Enabled)
+            {
+                logger.LogInformation($"Playlist updater for '{RadioName}' hosted service is disabled.");
+                return Task.CompletedTask;
+            }
+
+            logger.LogInformation($"Playlist updater for '{RadioName}' hosted service is starting.");
+            timer = new Timer(DoWork, null, TimeSpan.FromSeconds(10), options.Value.RefreshInterval);
             return Task.CompletedTask;
         }
 
@@ -46,7 +55,7 @@ namespace RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater
             try
             {
                 using var scope = serviceScopeFactory.CreateScope();
-                var manager = scope.ServiceProvider.GetService<IPlaylistManager>();
+                var manager = PlaylistMangerProvider(scope.ServiceProvider);
 
                 /* Version 1 */
                 //manager.PopulateSpotifyDailylist().ConfigureAwait(false).GetAwaiter().GetResult();
@@ -56,15 +65,15 @@ namespace RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Something went wrong during processing daily playlist!");
+                logger.LogError(e, $"Something went wrong during processing '{RadioName}' playlist!");
             }
 
-            logger.LogInformation($"Update playlist completed. Handled in {sw.Elapsed.TotalSeconds} seconds");
+            logger.LogInformation($"Updating '{RadioName}' playlist completed. Handled in {sw.Elapsed.TotalSeconds} seconds");
         }
 
         public Task StopAsync(CancellationToken stoppingToken)
         {
-            logger.LogInformation("DailyPlaylist hosted service is stopping.");
+            logger.LogInformation($"Playlist updater for '{RadioName}' hosted service is stopping.");
             timer?.Change(Timeout.Infinite, 0);
             return Task.CompletedTask;
         }
