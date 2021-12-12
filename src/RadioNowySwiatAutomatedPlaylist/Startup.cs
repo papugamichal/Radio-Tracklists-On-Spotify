@@ -8,20 +8,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using RadioNowySwiatAutomatedPlaylist.HostedServices.KeepAlive;
-using RadioNowySwiatAutomatedPlaylist.HostedServices.KeepAlive.Configuration;
-using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater;
-using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater.Configuration;
-using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistVisibilityLimiter;
-using RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistVisibilityLimiter.Configuration;
-using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService;
+using RadioNowySwiatAutomatedPlaylist.HostedServices;
+using RadioNowySwiatAutomatedPlaylist.Services;
 using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Abstraction;
-using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Configuration;
-using RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager;
-using RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager.Configuration;
 using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService;
 using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Abstraction;
 using RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Configuration;
@@ -45,38 +35,22 @@ namespace RadioNowySwiatPlaylistBot
 
             services
                 .AddDataProtection().Services
-                //.Configure<DataSourceOptions>(config =>
-                //    this.Configuration.GetSection(DataSourceOptions.SectionName).Bind(config))
-                .Configure<SpotifyClientOptions>(config =>
-                    this.Configuration.GetSection(SpotifyClientOptions.SectionName).Bind(config))
-                .Configure<SpotifyAuthorizationServiceOptions>(config =>
-                    this.Configuration.GetSection(SpotifyAuthorizationServiceOptions.SectionName).Bind(config))
-                .Configure<PlaylistUpdaterOptions>(config =>
-                    this.Configuration.GetSection(PlaylistUpdaterOptions.SectionName).Bind(config))
-                .Configure<KeepAliveServiceOptions>(config =>
-                    this.Configuration.GetSection(KeepAliveServiceOptions.SectionName).Bind(config))
-                .Configure<PlaylistManagerOptions>(config =>
-                    this.Configuration.GetSection(PlaylistManagerOptions.SectionName).Bind(config))
-                .Configure<PlaylistVisibilityLimiterOptions>(config =>
-                    this.Configuration.GetSection(PlaylistVisibilityLimiterOptions.SectionName).Bind(config))
-                .AddScoped<IDataSourceService, DataSourceService>(provider =>
-                {
-                    var logger = provider.GetRequiredService<ILogger<DataSourceService>>();
-                    var configuration = provider.GetRequiredService<IConfiguration>();
-                    
-                    var _options = new DataSourceOptions();
-                    configuration.Bind(_options);
-                    var options = Options.Create(_options);
-                    return new DataSourceService(logger, options);
-                })
-                .AddScoped<IPlaylistManager, PlaylistManager>()
+                .Configure<SpotifyClientOptions>(options =>
+                    this.Configuration.GetSection(SpotifyClientOptions.SectionName).Bind(options))
+                .Configure<SpotifyAuthorizationServiceOptions>(options =>
+                    this.Configuration.GetSection(SpotifyAuthorizationServiceOptions.SectionName).Bind(options))
                 .AddSingleton<ISpotifyClientService, SpotifyClientService>()
                 .AddSingleton<ISpotifyAuthorizationService, SpotifyAuthorizationService>()
                 .AddSingleton<FoundInSpotifyCache>()
                 .AddSingleton<NotFoundInSpotifyCache>()
-                .AddHostedService<PlaylistUpdaterHostedService>()
-                .AddHostedService<KeepAliveHostedService>()
-                .AddHostedService<PlaylistVisibilityLimiterHostedService>()
+                .AddRadioNowySwiatDataSource()
+                .AddRadioNowySwiatPlaylistManager()
+                .AddRadio357DataSource()
+                .AddRadio357PlaylistManager()
+                .AddRadioNowySwiatPlaylistUpdaterHostedService()
+                .AddRadio357PlaylistUpdaterHostedService()
+                .AddPlaylistVisibilityLimiterHostedService(Configuration)
+                .AddKeepAliveHostedService(Configuration)
                 ;
         }
 
