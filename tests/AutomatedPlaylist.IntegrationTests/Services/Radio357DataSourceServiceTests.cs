@@ -18,7 +18,7 @@ namespace AutomatedPlaylist.Tests.Services
         [SetUp]
         public void Setup()
         {
-            var logger = Mock.Of<ILogger<DataSourceService>>();
+            var logger = Mock.Of<ILogger<Radio357DataSourceService>>();
             var options = Options.Create(new DataSourceOptions
             {
                 PlaylistEndpoint = "https://www.odsluchane.eu/szukaj.php?r=390&date=",

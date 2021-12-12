@@ -14,13 +14,14 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
 {
     public class Radio357DataSourceService : IDataSourceService
     {
-        private readonly ILogger<DataSourceService> logger;
+        private readonly ILogger<Radio357DataSourceService> logger;
         private readonly DataSourceOptions options;
 
         private const string TracksListHtmlCollectionXPath = "/html/body/div[1]/section/div/div/div[4]/div/table/tbody";
+        private const string RemoveFromSongTitle = "(Polski Top Radia 357)";
 
         public Radio357DataSourceService(
-            ILogger<DataSourceService> logger,
+            ILogger<Radio357DataSourceService> logger,
             IOptions<DataSourceOptions> options)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -103,7 +104,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
 
                 var splitted = _artistTitle.Split('-');
                 var artis = splitted?.First();
-                var title = splitted?.Last();
+                var title = splitted?.Last()?.Replace(RemoveFromSongTitle, string.Empty);
 
                 var item = new TrackInfo(artis, title, playDateTime);
                 collection.Add(item);

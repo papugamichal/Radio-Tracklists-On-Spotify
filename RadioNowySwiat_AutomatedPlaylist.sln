@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "drafts", "drafts", "{641B1A
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5CDAFC4D-BD52-49C1-A481-B9FABEA01FD5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomatedPlaylist.IntegationTests", "tests\AutomatedPlaylist.Tests\AutomatedPlaylist.IntegationTests.csproj", "{3403E92C-2B6F-4338-9C52-81319B79924E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomatedPlaylist.IntegationTests", "tests\AutomatedPlaylist.IntegrationTests\AutomatedPlaylist.IntegationTests.csproj", "{3403E92C-2B6F-4338-9C52-81319B79924E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

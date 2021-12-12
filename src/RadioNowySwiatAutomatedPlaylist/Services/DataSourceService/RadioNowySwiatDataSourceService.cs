@@ -12,15 +12,15 @@ using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.DTOs;
 
 namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
 {
-    public class DataSourceService : IDataSourceService
+    public class RadioNowySwiatDataSourceService : IDataSourceService
     {
-        private readonly ILogger<DataSourceService> logger;
+        private readonly ILogger<RadioNowySwiatDataSourceService> logger;
         private readonly DataSourceOptions options;
 
         private const string TrackHtmlClassName = "lista-ogolna-box";
         private const string TracksListHtmlCollectionXPath = "/html/body/div[1]/div[3]/div[1]/div[2]/div/div/div/div[1]/div/div/div";
-        public DataSourceService(
-            ILogger<DataSourceService> logger,
+        public RadioNowySwiatDataSourceService(
+            ILogger<RadioNowySwiatDataSourceService> logger,
             IOptions<DataSourceOptions> options)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
