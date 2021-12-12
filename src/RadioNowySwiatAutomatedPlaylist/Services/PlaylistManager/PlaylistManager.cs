@@ -13,7 +13,7 @@ using RadioNowySwiatAutomatedPlaylist.Services.TrackCache;
 
 namespace RadioNowySwiatAutomatedPlaylist.Services.PlaylistManager
 {
-    public class PlaylistManager : IPlaylistManager
+    public abstract class PlaylistManager : IPlaylistManager
     {
         private readonly ILogger<PlaylistManager> logger;
         private readonly PlaylistManagerOptions options;
