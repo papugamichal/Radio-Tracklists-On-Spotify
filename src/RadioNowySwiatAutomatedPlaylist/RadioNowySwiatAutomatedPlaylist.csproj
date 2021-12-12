@@ -17,6 +17,9 @@
     <PackageReference Include="RestSharp" Version="106.11.7" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="Images\profile_cover.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Images\radio_357.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
