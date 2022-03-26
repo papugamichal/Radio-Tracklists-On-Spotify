@@ -29,10 +29,10 @@ namespace AutomatedPlaylist.Tests.Services
         }
 
         [Test]
-        public async Task GetPlaylistFor_Today_ReturnsNotEmptyList()
+        public async Task GetPlaylistFor_FixedDate_ReturnsNotEmptyList()
         {
             //Arrange
-            var date = DateTime.Today;
+            var date = new DateTime(2022, 02, 24);
 
             //Act
             var result = await _sut.GetPlaylistFor(date);
