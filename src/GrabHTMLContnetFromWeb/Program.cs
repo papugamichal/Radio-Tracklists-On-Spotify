@@ -82,12 +82,12 @@ namespace GrabHTMLContnetFromWeb
             var client = new RestClient(spotifyApi);
             client.Authenticator = new HttpBasicAuthenticator(clientId, clientSecret);
 
-            var postRequest = new RestRequest("/v1/users/{user_id}/playlists", Method.POST);
+            var postRequest = new RestRequest("/v1/users/{user_id}/playlists", Method.Post);
             postRequest.AddHeader("content-type", "application/x-www-form-urlencoded");
 
             postRequest.AddParameter("grant_type", "client_credentials");
             postRequest.AddParameter("scope", "playlist-modify-private");
-            var request = client.Execute<AccessToken>(postRequest);
+            var request = client.ExecuteAsync<AccessToken>(postRequest).Result;
 
             return request.Data.access_token;
         }
@@ -98,8 +98,7 @@ namespace GrabHTMLContnetFromWeb
 
                 var client = new RestClient(spotifyApi);
                 client.Authenticator = new JwtAuthenticator(token);
-            var postRequest = new RestRequest($"/users/{userId}/playlists", Method.POST);
-            postRequest.Parameters.Clear();
+            var postRequest = new RestRequest($"/users/{userId}/playlists", Method.Post);
             postRequest.AddHeader("content-type", "application/json");
             postRequest.AddJsonBody(
                 new
@@ -110,7 +109,7 @@ namespace GrabHTMLContnetFromWeb
                 });
 
 
-            var request = client.Execute(postRequest);
+            var request = client.ExecuteAsync(postRequest).Result;
 
             if (request.StatusCode == System.Net.HttpStatusCode.OK)
             {
@@ -126,10 +125,10 @@ namespace GrabHTMLContnetFromWeb
 
             var client = new RestClient(spotifyApi);
 
-            var getRequest = new RestRequest($"/me", Method.GET);
+            var getRequest = new RestRequest($"/me", Method.Get);
             getRequest.AddHeader("authorization", "Bearer " + token);
             
-            var request = client.Execute(getRequest);
+            var request = client.ExecuteAsync(getRequest).Result;
 
             if (request.StatusCode == System.Net.HttpStatusCode.OK)
             {
