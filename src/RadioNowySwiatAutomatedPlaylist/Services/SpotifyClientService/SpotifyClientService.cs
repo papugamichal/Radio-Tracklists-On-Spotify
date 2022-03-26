@@ -65,7 +65,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
             var accessToken = authorizationService.GetToken();
             client.Authenticator = new JwtAuthenticator(accessToken);
 
-            var postRequest = new RestRequest("/v1/me", Method.GET);
+            var postRequest = new RestRequest("/v1/me", Method.Get);
 
             var request = await client.ExecuteAsync<UserDetailsDto>(postRequest).ConfigureAwait(false);
             if (request.Data is null)
@@ -87,7 +87,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
             var accessToken = authorizationService.GetToken();
             client.Authenticator = new JwtAuthenticator(accessToken);
 
-            var postRequest = new RestRequest($"/v1/me/playlists", Method.GET);
+            var postRequest = new RestRequest($"/v1/me/playlists", Method.Get);
             var request = await client.ExecuteAsync<PlaylistsDto>(postRequest).ConfigureAwait(false);
             if (request.Data is null)
             {
@@ -107,7 +107,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
             var accessToken = authorizationService.GetToken();
             client.Authenticator = new JwtAuthenticator(accessToken);
 
-            var postRequest = new RestRequest($"/v1/playlists/{playlistId}/tracks", Method.GET);
+            var postRequest = new RestRequest($"/v1/playlists/{playlistId}/tracks", Method.Get);
             var request = await client.ExecuteAsync<PlaylistsDto>(postRequest).ConfigureAwait(false);
             if (request.Data is null)
             {
@@ -127,7 +127,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
             var accessToken = authorizationService.GetToken();
             client.Authenticator = new JwtAuthenticator(accessToken);
 
-            var postRequest = new RestRequest($"/v1/me/playlists", Method.GET);
+            var postRequest = new RestRequest($"/v1/me/playlists", Method.Get);
             var request = await client.ExecuteAsync<PlaylistsDto>(postRequest).ConfigureAwait(false);
             if (request.Data is null)
             {
@@ -161,7 +161,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
             var accessToken = authorizationService.GetToken();
             client.Authenticator = new JwtAuthenticator(accessToken);
 
-            var postRequest = new RestRequest($"/v1/users/{userId}/playlists", Method.POST);
+            var postRequest = new RestRequest($"/v1/users/{userId}/playlists", Method.Post);
             postRequest.AddHeader(contentType, "application/json");
             postRequest.AddJsonBody(new
             {
@@ -194,7 +194,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
             var accessToken = authorizationService.GetToken();
             client.Authenticator = new JwtAuthenticator(accessToken);
 
-            var putRequest = new RestRequest($"v1/playlists/{playlistId}/images", Method.PUT);
+            var putRequest = new RestRequest($"v1/playlists/{playlistId}/images", Method.Put);
             putRequest.AddHeader(contentType, "image/jpeg");
 
             var fileBytes = await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
@@ -219,7 +219,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
             var accessToken = authorizationService.GetToken();
             client.Authenticator = new JwtAuthenticator(accessToken);
 
-            var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.PUT);
+            var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.Put);
             putRequest.AddHeader(contentType, "application/json");
             putRequest.AddJsonBody(new
             {
@@ -246,7 +246,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
 
             foreach (var playlistId in playlistIds)
             {
-                var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.PUT);
+                var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.Put);
                 putRequest.AddHeader(contentType, "application/json");
                 putRequest.AddJsonBody(new
                 {
@@ -281,7 +281,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
             var accessToken = authorizationService.GetToken();
             client.Authenticator = new JwtAuthenticator(accessToken);
 
-            var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.PUT);
+            var putRequest = new RestRequest($"v1/playlists/{playlistId}", Method.Put);
             putRequest.AddHeader(contentType, "application/json");
             putRequest.AddJsonBody(new
             {
@@ -350,7 +350,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
                 var accessToken = authorizationService.GetToken();
                 client.Authenticator = new JwtAuthenticator(accessToken);
 
-                var deleteRequest = new RestRequest($"/v1/playlists/{playlistId}/tracks", Method.DELETE);
+                var deleteRequest = new RestRequest($"/v1/playlists/{playlistId}/tracks", Method.Delete);
                 deleteRequest.AddHeader(contentType, "application/json");
                 deleteRequest.AddJsonBody(new
                 {
@@ -391,7 +391,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
                 var accessToken = authorizationService.GetToken();
                 client.Authenticator = new JwtAuthenticator(accessToken);
 
-                var getReqeust = new RestRequest($"/v1/playlists/{playlistId}/tracks", Method.GET);
+                var getReqeust = new RestRequest($"/v1/playlists/{playlistId}/tracks", Method.Get);
                 getReqeust.AddHeader(contentType, "application/json");
                 getReqeust.AddParameter("offset", offset);
                 getReqeust.AddParameter("limit", bucketSize);
@@ -440,7 +440,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
             string artist = HttpUtility.UrlPathEncode(author);
             string trackSubstring = title.Length >= 5 ? title.Substring(0, 5) : title;
             string track = HttpUtility.UrlPathEncode(trackSubstring);
-            var getRequest = new RestRequest($"/v1/search?q=artist%3A{artist}%20track%3A{track}&type=track", Method.GET);
+            var getRequest = new RestRequest($"/v1/search?q=artist%3A{artist}%20track%3A{track}&type=track", Method.Get);
             var request = await client.ExecuteAsync<TrackRoot>(getRequest).ConfigureAwait(false);
             if (request.Data is null)
             {
@@ -500,7 +500,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
 
             string artist = HttpUtility.UrlPathEncode(author);
             string track = HttpUtility.UrlPathEncode(title);
-            var getRequest = new RestRequest($"/v1/search?q=artist%3A{artist}%20track%3A{track}&type=track", Method.GET);
+            var getRequest = new RestRequest($"/v1/search?q=artist%3A{artist}%20track%3A{track}&type=track", Method.Get);
             var request = await client.ExecuteAsync<TrackRoot>(getRequest).ConfigureAwait(false);
             if (request.Data is null)
             {
@@ -532,7 +532,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService
                 var accessToken = authorizationService.GetToken();
                 client.Authenticator = new JwtAuthenticator(accessToken);
 
-                var postRequest = new RestRequest($"v1/playlists/{playlistId}/tracks", Method.POST);
+                var postRequest = new RestRequest($"v1/playlists/{playlistId}/tracks", Method.Post);
                 postRequest.AddHeader(contentType, "application/json");
                 postRequest.AddJsonBody(new
                 {

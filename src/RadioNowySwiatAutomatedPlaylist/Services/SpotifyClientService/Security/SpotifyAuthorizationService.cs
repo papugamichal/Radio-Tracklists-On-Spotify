@@ -62,7 +62,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Security
             var client = new RestClient(options.Value.AccountWebApi);
             client.Authenticator = new HttpBasicAuthenticator(options.Value.ClientId, options.Value.ClientSecret);
 
-            var postRequest = new RestRequest(options.Value.TokenEndpoint, Method.POST);
+            var postRequest = new RestRequest(options.Value.TokenEndpoint, Method.Post);
             postRequest.AddHeader(contentType, "application/x-www-form-urlencoded");
             postRequest.AddParameter(grantType, "authorization_code");
             postRequest.AddParameter(codeHeader, authorizationCode);
@@ -131,7 +131,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.SpotifyClientService.Security
             var client = new RestClient(options.Value.AccountWebApi);
             client.Authenticator = new HttpBasicAuthenticator(options.Value.ClientId, options.Value.ClientSecret);
 
-            var postRequest = new RestRequest(options.Value.TokenEndpoint, Method.POST);
+            var postRequest = new RestRequest(options.Value.TokenEndpoint, Method.Post);
             postRequest.AddHeader(contentType, "application/x-www-form-urlencoded");
             postRequest.AddParameter(grantType, "refresh_token");
             postRequest.AddParameter(refreshToken, tokenDto.refresh_token);
