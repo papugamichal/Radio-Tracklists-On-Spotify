@@ -2,7 +2,6 @@
 {
     public class PlaylistManagerOptions
     {
-        public static string SectionName = "PlaylistManager";
         public bool IsPublic { get; set; } = true;
         public bool TodayPlaylistIsPublic { get; set; }
         public string TodayPlaylistName { get; set; }

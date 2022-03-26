@@ -4,8 +4,7 @@ namespace RadioNowySwiatAutomatedPlaylist.HostedServices.PlaylistUpdater.Configu
 {
     public class PlaylistUpdaterOptions
     {
-        public static string SectionName = "DailyPlaylistService";
-
+        public bool Enabled { get; set; }
         public TimeSpan RefreshInterval { get; set; }
     }
 }
