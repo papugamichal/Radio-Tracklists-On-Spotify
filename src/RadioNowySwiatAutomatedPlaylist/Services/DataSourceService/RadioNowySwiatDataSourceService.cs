@@ -18,7 +18,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
         private readonly DataSourceOptions options;
 
         private const string TrackHtmlClassName = "lista-ogolna-box";
-        private const string TracksListHtmlCollectionXPath = "/html/body/div[1]/div[3]/div[1]/div[2]/div/div/div/div[1]/div/div/div";
+        private const string TracksListHtmlCollectionXPath = "/html/body/div[1]/div[4]/div[1]/div[2]/div/div/div/div[1]/div/div/div";
         public RadioNowySwiatDataSourceService(
             ILogger<RadioNowySwiatDataSourceService> logger,
             IOptions<DataSourceOptions> options)
@@ -47,6 +47,8 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
             {
                 string title = node.ChildNodes[1].ChildNodes[0].InnerHtml;
                 string artis = node.ChildNodes[1].ChildNodes[1].InnerHtml;
+
+                if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(artis)) continue;
                 var playTime = TimeSpan.Parse(node.ChildNodes[0].InnerHtml);
                 var playDateTime = new DateTime().Add(playTime);
 
