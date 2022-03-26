@@ -11,21 +11,21 @@ using RadioNowySwiatAutomatedPlaylist.Services.DataSourceService.Configuration;
 namespace AutomatedPlaylist.Tests.Services
 {
     [TestFixture]
-    public class Radio357DataSourceServiceTests
+    public class RadioNowySwiatDataSourceServiceTests
     {
         private IDataSourceService _sut;
 
         [SetUp]
         public void Setup()
         {
-            var logger = Mock.Of<ILogger<Radio357DataSourceService>>();
+            var logger = Mock.Of<ILogger<RadioNowySwiatDataSourceService>>();
             var options = Options.Create(new DataSourceOptions
             {
-                PlaylistEndpoint = "https://www.odsluchane.eu/szukaj.php?r=390&date=",
-                DateFormat = "dd-MM-yyyy"
+                PlaylistEndpoint = "https://nowyswiat.online/playlista/?dzien=",
+                DateFormat = "yyyy-MM-dd"
             });
 
-            _sut = new Radio357DataSourceService(logger, options);
+            _sut = new RadioNowySwiatDataSourceService(logger, options);
         }
 
         [Test]

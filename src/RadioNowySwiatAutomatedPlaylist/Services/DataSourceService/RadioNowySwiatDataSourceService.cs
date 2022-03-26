@@ -18,7 +18,8 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
         private readonly DataSourceOptions options;
 
         private const string TrackHtmlClassName = "lista-ogolna-box";
-        private const string TracksListHtmlCollectionXPath = "/html/body/div[1]/div[3]/div[1]/div[2]/div/div/div/div[1]/div/div/div";
+        private const string TracksListDivClass = "proradio-the_content";
+
         public RadioNowySwiatDataSourceService(
             ILogger<RadioNowySwiatDataSourceService> logger,
             IOptions<DataSourceOptions> options)
@@ -35,7 +36,7 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
             return trackCollection.ToList();
         }
 
-        private IEnumerable<TrackInfo> RetriveTracksInfoFrom(IEnumerable<HtmlNode> htmlNodes)
+        private static IEnumerable<TrackInfo> RetriveTracksInfoFrom(IEnumerable<HtmlNode> htmlNodes)
         {
             if (htmlNodes is null)
             {
@@ -47,6 +48,8 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
             {
                 string title = node.ChildNodes[1].ChildNodes[0].InnerHtml;
                 string artis = node.ChildNodes[1].ChildNodes[1].InnerHtml;
+
+                if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(artis)) continue;
                 var playTime = TimeSpan.Parse(node.ChildNodes[0].InnerHtml);
                 var playDateTime = new DateTime().Add(playTime);
 
@@ -64,13 +67,11 @@ namespace RadioNowySwiatAutomatedPlaylist.Services.DataSourceService
         private async Task<IEnumerable<HtmlNode>> GetDataSourceHtmlElementCollection(string url)
         {
             var htmlDocument = await GetRawContent(url).ConfigureAwait(false);
-            if (htmlDocument is null)
-            {
-                return null;
-            }
+            if (htmlDocument is null) return null;
 
-            var playListNode = htmlDocument.DocumentNode.SelectSingleNode(TracksListHtmlCollectionXPath);
-            var songBoxes = playListNode.ChildNodes.Where(e => e.GetAttributes().Any(f => f.Value == TrackHtmlClassName));
+            var tracksListDiv = htmlDocument.DocumentNode.SelectSingleNode("//div [@class='" + TracksListDivClass + "']");
+            var trackListsInternalDiv = tracksListDiv.ChildNodes[1];
+            var songBoxes = trackListsInternalDiv.ChildNodes.Where(e => e.GetAttributes().Any(f => f.Value == TrackHtmlClassName));
 
             return songBoxes;
         }
