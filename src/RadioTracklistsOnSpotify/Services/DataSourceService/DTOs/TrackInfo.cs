@@ -2,7 +2,7 @@
 
 namespace RadioTracklistsOnSpotify.Services.DataSourceService.DTOs
 {
-    public class TrackInfo
+    public class TrackInfo : IEquatable<TrackInfo>
     {
         public TrackInfo(string artistName, string title, DateTime playTime)
         {
@@ -15,5 +15,14 @@ namespace RadioTracklistsOnSpotify.Services.DataSourceService.DTOs
         public string ArtistName { get; }
         public string Title { get; }
 
+        public bool Equals(TrackInfo other)
+        {
+            if (ReferenceEquals(null, other)) return false; 
+            if (ReferenceEquals(this, other)) return true;
+
+            return ArtistName == other.ArtistName &&
+                Title == other.Title &&
+                PlayTime == other.PlayTime;
+        }
     }
 }

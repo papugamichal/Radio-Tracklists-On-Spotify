@@ -23,16 +23,16 @@ namespace RadioTracklistsOnSpotify.Services
 
         public static IServiceCollection AddRadioNowySwiatDataSource(this IServiceCollection services)
         {
-            services.AddScoped<IDataSourceService, RadioNowySwiatDataSourceService>(provider =>
+            services.AddScoped<IDataSourceService, RadioNowySwiatDirectDataSourceService>(provider =>
             {
-                var logger = provider.GetRequiredService<ILogger<RadioNowySwiatDataSourceService>>();
+                var logger = provider.GetRequiredService<ILogger<RadioNowySwiatDirectDataSourceService>>();
                 var configuration = provider.GetRequiredService<IConfiguration>();
 
                 var options = new DataSourceOptions();
                 configuration.GetSection(RadioNowySwiatDataSourceSection).Bind(options);
                 var iOptions = Options.Create(options);
 
-                return new RadioNowySwiatDataSourceService(logger, iOptions);
+                return new RadioNowySwiatDirectDataSourceService(logger, iOptions);
             });
             return services;
         }
@@ -57,7 +57,7 @@ namespace RadioTracklistsOnSpotify.Services
             services.AddScoped<IPlaylistManager, RadioNowySwiatPlaylistManager>(provider =>
                 {
                     var logger = provider.GetRequiredService<ILogger<RadioNowySwiatPlaylistManager>>();
-                    var dataSource = provider.GetServices<IDataSourceService>().First(o => o.GetType() == typeof(RadioNowySwiatDataSourceService));
+                    var dataSource = provider.GetServices<IDataSourceService>().First(o => o.GetType() == typeof(RadioNowySwiatDirectDataSourceService));
                     var spotifyCient = provider.GetRequiredService<ISpotifyClientService>();
                     var foundTracksCache = provider.GetRequiredService<FoundInSpotifyCache>();
                     var notFoundTracksCache = provider.GetRequiredService<NotFoundInSpotifyCache>();

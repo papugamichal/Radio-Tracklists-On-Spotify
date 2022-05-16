@@ -267,7 +267,7 @@ namespace RadioTracklistsOnSpotify.Services.PlaylistManager
                 return null;
             }
 
-            return await dataSourceService.GetPlaylistFor(DateTime.Today).ConfigureAwait(false); ;
+            return await dataSourceService.GetPlaylistFor(DateTime.Today).ConfigureAwait(false);
         }
 
         /* Version 1 */
