@@ -9,20 +9,17 @@ using Microsoft.Extensions.Options;
 using RadioTracklistsOnSpotify.Services.DataSourceService.Abstraction;
 using RadioTracklistsOnSpotify.Services.DataSourceService.Configuration;
 using RadioTracklistsOnSpotify.Services.DataSourceService.DTOs;
+using RestSharp;
 
 namespace RadioTracklistsOnSpotify.Services.DataSourceService
 {
-    [Obsolete]
-    public class RadioNowySwiatDataSourceService : IDataSourceService
+    public class RadioNowySwiatDirectDataSourceService : IDataSourceService
     {
-        private readonly ILogger<RadioNowySwiatDataSourceService> logger;
+        private readonly ILogger<RadioNowySwiatDirectDataSourceService> logger;
         private readonly DataSourceOptions options;
 
-        private const string TrackHtmlClassName = "lista-ogolna-box";
-        private const string TracksListDivClass = "proradio-the_content";
-
-        public RadioNowySwiatDataSourceService(
-            ILogger<RadioNowySwiatDataSourceService> logger,
+        public RadioNowySwiatDirectDataSourceService(
+            ILogger<RadioNowySwiatDirectDataSourceService> logger,
             IOptions<DataSourceOptions> options)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -31,10 +28,25 @@ namespace RadioTracklistsOnSpotify.Services.DataSourceService
 
         public async Task<IReadOnlyList<TrackInfo>> GetPlaylistFor(DateTime date)
         {
-            var url = GetDataSourceUrlFor(date);
-            var trackHtmlBoxes = await GetDataSourceHtmlElementCollection(url).ConfigureAwait(false);
+            var url = GetDataSourceUrlFor();
+            var trackHtmlBoxes = await GetDataSourceHtmlElementCollection(url, date);
             var trackCollection = RetriveTracksInfoFrom(trackHtmlBoxes);
             return trackCollection.ToList();
+        }
+
+        private string GetDataSourceUrlFor()
+        {
+            return options.PlaylistEndpoint;
+        }
+
+        private async Task<IEnumerable<HtmlNode>> GetDataSourceHtmlElementCollection(string url, DateTime date)
+        {
+            var htmlDocument = await GetRawContent(url, date).ConfigureAwait(false);
+            if (htmlDocument is null) return null;
+            var tracksListDiv2 = htmlDocument.DocumentNode.SelectSingleNode("//ul [@class='js-filter rns-vote-list']");
+
+            var tracksAsLiElements = tracksListDiv2.ChildNodes.Where(node => node.Name == "li");
+            return tracksAsLiElements;
         }
 
         private static IEnumerable<TrackInfo> RetriveTracksInfoFrom(IEnumerable<HtmlNode> htmlNodes)
@@ -47,34 +59,18 @@ namespace RadioTracklistsOnSpotify.Services.DataSourceService
             var collection = new List<TrackInfo>(htmlNodes.Count());
             foreach (var node in htmlNodes)
             {
-                string title = node.ChildNodes[1].ChildNodes[0].InnerHtml;
-                string artis = node.ChildNodes[1].ChildNodes[1].InnerHtml;
+                string title = node.ChildNodes[3].ChildNodes[1].InnerHtml.Trim();
+                string artis = node.ChildNodes[3].ChildNodes[3].InnerHtml.Trim();
+                string time = node.ChildNodes[5].ChildNodes[1].InnerHtml;
 
                 if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(artis)) continue;
-                var playTime = TimeSpan.Parse(node.ChildNodes[0].InnerHtml);
+                var playTime = TimeSpan.Parse(time);
                 var playDateTime = new DateTime().Add(playTime);
 
                 var item = new TrackInfo(artis, title, playDateTime);
                 collection.Add(item);
             }
             return collection;
-        }
-
-        private string GetDataSourceUrlFor(DateTime date)
-        {
-            return options.PlaylistEndpoint + date.ToString(options.DateFormat);
-        }
-
-        private async Task<IEnumerable<HtmlNode>> GetDataSourceHtmlElementCollection(string url)
-        {
-            var htmlDocument = await GetRawContent(url).ConfigureAwait(false);
-            if (htmlDocument is null) return null;
-
-            var tracksListDiv = htmlDocument.DocumentNode.SelectSingleNode("//div [@class='" + TracksListDivClass + "']");
-            var trackListsInternalDiv = tracksListDiv.ChildNodes[1];
-            var songBoxes = trackListsInternalDiv.ChildNodes.Where(e => e.GetAttributes().Any(f => f.Value == TrackHtmlClassName));
-
-            return songBoxes;
         }
 
         public async Task<Dictionary<DateTime, IReadOnlyCollection<TrackInfo>>> GetPlaylistForRange(DateTime startDate, DateTime endDate)
@@ -98,35 +94,33 @@ namespace RadioTracklistsOnSpotify.Services.DataSourceService
             return result;
         }
 
-        private async Task<HtmlDocument> GetRawContent(string url)
+        private async Task<HtmlDocument> GetRawContent(string url, DateTime date)
         {
-            HtmlDocument result = null;
+            var document = new HtmlDocument();
             var sw = new Stopwatch();
             try
             {
-                var web = new HtmlWeb();
-                sw.Start();
-                result = await web.LoadFromWebAsync(url);
+                using var client = new RestClient(url);
+                var request = new RestRequest();
+                request.AddParameter("date", date.ToString("yyyy-MM-dd"), ParameterType.RequestBody);
+                request.AddParameter("time_range", date.ToString("Wszystkie"), ParameterType.RequestBody);
+                var result = await client.PostAsync(request);
+
                 logger.LogInformation($"Performance monitor. Load HTML document from '{url}' in: {sw.ElapsedMilliseconds} ms");
-
-                if (result is null)
+                if (result.StatusCode != System.Net.HttpStatusCode.OK)
                 {
-                    logger.LogError($"Load HTML document from '{url}' return null");
-                    return result;
+                    logger.LogError($"Request to load HTML document from '{url}' end with code: '{result.StatusCode}'");
+                    return null;
                 }
 
-                if (web.StatusCode != System.Net.HttpStatusCode.OK)
-                {
-                    logger.LogError($"Request to load HTML document from '{url}' end with code: '{web.StatusCode}'");
-                    return result;
-                }
+                document.LoadHtml(result.Content);
             }
             catch (Exception e)
             {
                 logger.LogError(e, $"Unexpected error occured during fetch HTML document from '{url}'!");
             }
 
-            return result;
+            return document;
         }
     }
 }

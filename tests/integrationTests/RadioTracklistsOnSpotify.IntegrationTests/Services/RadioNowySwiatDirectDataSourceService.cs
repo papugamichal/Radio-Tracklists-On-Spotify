@@ -10,22 +10,22 @@ using RadioTracklistsOnSpotify.Services.DataSourceService.Configuration;
 
 namespace AutomatedPlaylist.Tests.Services
 {
-    [TestFixture, Ignore("Ignored due to datasource is obsolete")]
-    public class RadioNowySwiatDataSourceServiceTests
+    [TestFixture]
+    public class RadioNowySwiatDirectDataSourceService
     {
         private IDataSourceService _sut;
 
         [SetUp]
         public void Setup()
         {
-            var logger = Mock.Of<ILogger<RadioNowySwiatDataSourceService>>();
+            var logger = Mock.Of<ILogger<RadioTracklistsOnSpotify.Services.DataSourceService.RadioNowySwiatDirectDataSourceService>>();
             var options = Options.Create(new DataSourceOptions
             {
                 PlaylistEndpoint = "https://nowyswiat.online/playlista/?dzien=",
                 DateFormat = "yyyy-MM-dd"
             });
 
-            _sut = new RadioNowySwiatDataSourceService(logger, options);
+            _sut = new RadioTracklistsOnSpotify.Services.DataSourceService.RadioNowySwiatDirectDataSourceService(logger, options);
         }
 
         [Test]
@@ -42,16 +42,20 @@ namespace AutomatedPlaylist.Tests.Services
         }
 
         [Test]
-        public async Task GetPlaylistFor_Tomorrow_ReturnsEmptyList()
+        public async Task GetPlaylistFor_Tomorrow_ReturnsTodaysPlayList()
         {
             //Arrange
-            var date = DateTime.Today.AddDays(1);
+            var today = DateTime.Today;
+            var todayList = await _sut.GetPlaylistFor(today);
+            var tomorrowDate = today.AddDays(1);
 
             //Act
-            var result = await _sut.GetPlaylistFor(date);
+            var result = await _sut.GetPlaylistFor(tomorrowDate);
 
             //Assert
-            Assert.That(result, Is.Empty);
+            Assert.That(result, Is.Not.Empty);
+            Assert.That(result.Count, Is.EqualTo(todayList.Count));
+            CollectionAssert.AreEquivalent(todayList, result);
         }
     }
 }
